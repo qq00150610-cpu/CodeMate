@@ -20,7 +20,7 @@ class CodeMateApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AIProvider()),
+        ChangeNotifierProvider(create: (_) => AIChatProvider()),
         ChangeNotifierProvider(create: (_) => UpdateService()),
         ChangeNotifierProvider(create: (_) => PerformanceService()),
       ],
@@ -354,10 +354,10 @@ class _CodeMateHomePageState extends State<CodeMateHomePage> {
                     _webViewController = controller;
                     _injectBridgeScript(controller);
                   },
-                  onPageStarted: (controller, url) {
+                  onLoadStart: (controller, url) {
                     setState(() => _isLoading = true);
                   },
-                  onPageFinished: (controller, url) {
+                  onLoadStop: (controller, url) {
                     setState(() {
                       _isLoading = false;
                       _loadingProgress = 1.0;

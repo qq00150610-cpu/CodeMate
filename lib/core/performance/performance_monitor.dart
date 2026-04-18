@@ -50,7 +50,7 @@ enum PerformanceMode {
 
 /// 性能服务
 class PerformanceService with ChangeNotifier {
-  static const _instance = PerformanceService._internal();
+  static final _instance = PerformanceService._internal();
   factory PerformanceService() => _instance;
   PerformanceService._internal();
 

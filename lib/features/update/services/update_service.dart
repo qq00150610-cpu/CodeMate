@@ -7,7 +7,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:path_provider/path_provider.dart.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// 更新状态
@@ -394,3 +394,20 @@ class UpdateService with ChangeNotifier {
     super.dispose();
   }
 }
+
+  // 公共方法 - 供 main.dart 调用
+  void updateStatus(UpdateStatus newStatus) {
+    _status = newStatus;
+    notifyListeners();
+  }
+
+  void updateDownloadProgress(double progress) {
+    _downloadProgress = progress;
+    notifyListeners();
+  }
+
+  void updateError(String message) {
+    _status = UpdateStatus.error;
+    _errorMessage = message;
+    notifyListeners();
+  }

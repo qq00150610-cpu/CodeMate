@@ -27,7 +27,7 @@ class AIMessageItem {
 }
 
 /// AI Provider - 管理 AI 助手状态
-class AIProvider extends ChangeNotifier {
+class AIChatProvider extends ChangeNotifier {
   // 对话历史
   final List<AIMessageItem> _messages = [];
   List<AIMessageItem> get messages => List.unmodifiable(_messages);

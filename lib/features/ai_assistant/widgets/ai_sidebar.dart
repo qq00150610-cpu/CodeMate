@@ -342,13 +342,13 @@ class AISidebarDrawer extends StatelessWidget {
   void _sendMessage(BuildContext context, String text, TextEditingController controller) {
     if (text.trim().isEmpty) return;
     
-    final ai = context.read<AIProvider>();
+    final ai = context.read<AIChatProvider>();
     ai.sendMessage(text.trim());
     controller.clear();
   }
 
   void _onQuickCommand(BuildContext context, QuickCommand command) {
-    final ai = context.read<AIProvider>();
+    final ai = context.read<AIChatProvider>();
     ai.executeQuickCommand(command, null);
   }
 

@@ -29,6 +29,18 @@ dependencies:
   
   # 工具类
   collection: ^1.18.0
+  
+  # 文件路径
+  path_provider: ^2.1.1
+  
+  # 设备信息
+  device_info_plus: ^9.1.1
+  
+  # 下载管理
+  flutter_downloader: ^1.11.4
+  
+  # HTTP 请求
+  http: ^1.1.0
 
 dev_dependencies:
   flutter_test:

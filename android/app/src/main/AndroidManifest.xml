@@ -1,146 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    CodeMate Android 应用清单文件
-    =============================================================================
-    定义应用组件、权限、配置等信息
--->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    
-    <!-- 应用包名 -->
     package="com.codemate.editor">
-    
-    <!-- ====================================================================== -->
-    <!-- 权限声明 -->
-    <!-- ====================================================================== -->
-    
-    <!-- 网络权限 -->
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    
-    <!-- 存储权限 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
-        android:maxSdkVersion="29"
-        tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
-        tools:ignore="ScopedStorage" />
-    
-    <!-- 安装应用权限 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    
-    <!-- 通知权限 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    
-    <!-- 振动反馈 -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    
-    <!-- 唤醒锁 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    
-    <!-- 请求后台运行 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    
-    <!-- 下载管理器 -->
-    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
-    
-    <!-- 浮窗权限（用于快捷操作）-->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    
-    <!-- ====================================================================== -->
-    <!-- 应用特性 -->
-    <!-- ====================================================================== -->
-    
-    <uses-feature 
-        android:name="android.hardware.touchscreen" 
-        android:required="true" />
-    <uses-feature 
-        android:name="android.hardware.internet" 
-        android:required="false" />
-    
-    <!-- ====================================================================== -->
-    <!-- 应用配置 -->
-    <!-- ====================================================================== -->
-    
+
     <application
-        android:name=".CodeMateApplication"
-        android:allowBackup="true"
+        android:label="CodeMate"
+        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:hardwareAccelerated="true"
-        android:largeHeap="true"
         android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
+        android:allowBackup="true"
+        android:fullBackupContent="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="34">
-        
-        <!-- 主启动 Activity -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
-            android:screenOrientation="userLandscape"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
             
-            <!-- 支持的文件类型 -->
             <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="file" />
-                <data android:scheme="content" />
-                <data android:mimeType="text/plain" />
-                <data android:mimeType="*/*" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        
-        <!-- AI 服务 -->
-        <service
-            android:name=".AIService"
-            android:enabled="true"
-            android:exported="false" />
-        
-        <!-- 更新服务 -->
-        <service
-            android:name=".UpdateService"
-            android:enabled="true"
-            android:exported="false" />
-        
-        <!-- 下载接收器 -->
-        <receiver
-            android:name=".DownloadCompleteReceiver"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
-            </intent-filter>
-        </receiver>
-        
-        <!-- 文件提供者 -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-        
-        <!-- Flutter 引擎 -->
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-            
+
+        <service
+            android:name=".UpdateService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
     </application>
-    
+
 </manifest>

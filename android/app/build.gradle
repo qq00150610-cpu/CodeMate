@@ -4,13 +4,6 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def keystorePropertiesFile = rootProject.file("keystore.properties")
-def keystoreProperties = new Properties()
-
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace "com.codemate.editor"
     compileSdk 34
@@ -40,40 +33,18 @@ android {
         }
     }
 
-    signingConfigs {
-        debug {
-            storeFile file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword "android"
-            keyAlias "androiddebugkey"
-            keyPassword "android"
-        }
-
-        release {
-            if (keystorePropertiesFile.exists()) {
-                storeFile file(keystoreProperties.getProperty("key.store", "app/codemate.keystore"))
-                storePassword keystoreProperties.getProperty("key.store.password", "qq900236")
-                keyAlias keystoreProperties.getProperty("key.alias", "codemate")
-                keyPassword keystoreProperties.getProperty("key.alias.password", "qq900236")
-            }
-        }
-    }
-
     buildTypes {
         debug {
-            applicationIdSuffix ".debug"
             debuggable true
-            signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
 
         release {
             debuggable false
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
-            zipAlignEnabled true
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
 

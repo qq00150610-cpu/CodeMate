@@ -10,25 +10,31 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # WebView 支持
+  # WebView
   flutter_inappwebview: ^6.0.0
   
-  # Markdown 渲染（支持 AI 响应展示）
+  # Markdown
   flutter_markdown: ^0.6.18
   
-  # 状态管理
+  # State management
   provider: ^6.1.1
   
-  # 本地存储
+  # Storage
   shared_preferences: ^2.2.2
   
-  # 权限处理
+  # Permissions
   permission_handler: ^11.1.0
   
-  # HTTP 请求
+  # HTTP
   http: ^1.1.0
   
-  # 工具类
+  # Device info
+  device_info_plus: ^9.0.0
+  
+  # Downloader
+  flutter_downloader: ^1.11.0
+  
+  # Utils
   collection: ^1.18.0
 
 dev_dependencies:

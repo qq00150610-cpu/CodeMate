@@ -1,306 +1,78 @@
-// android/app/build.gradle - CodeMate 应用级构建配置
-// =============================================================================
-// 包含签名配置、多渠道构建、ProGuard 等设置
-// =============================================================================
-
 plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// 读取签名配置
-def keystorePropertiesFile = rootProject.file("keystore.properties")
-def keystoreProperties = new Properties()
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader ->
+        localProperties.load(reader)
+    }
+}
 
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
+if (flutterVersionCode == null) {
+    flutterVersionCode = "1"
+}
+
+def flutterVersionName = localProperties.getProperty("flutter.versionName")
+if (flutterVersionName == null) {
+    flutterVersionName = "1.0"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    keystorePropertiesFile.withReader("UTF-8") { reader ->
+        keystoreProperties.load(reader)
+    }
 }
 
 android {
-    namespace "com.codemate.editor"
-    compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
+    namespace = "com.codemate.editor"
+    compileSdk = 34
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
-    sourceSets {
-        main {
-            manifest.srcFile "src/main/AndroidManifest.xml"
-            java.srcDirs = ["src/main/kotlin"]
-            assets.srcDirs = ["src/main/assets", "flutter_assets"]
-        }
-        androidTest {
-            java.srcDirs = ["src/androidTest"]
-        }
-        test {
-            java.srcDirs = ["src/test"]
-        }
+    defaultConfig {
+        applicationId = "com.codemate.editor"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = flutterVersionCode.toInteger()
+        versionName = flutterVersionName
     }
 
-    // 签名配置
     signingConfigs {
-        // Debug 签名配置（使用默认调试密钥）
-        debug {
-            storeFile file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword "android"
-            keyAlias "androiddebugkey"
-            keyPassword "android"
-        }
-
-        // Release 签名配置
         release {
-            // 从 keystore.properties 读取
-            def keyStoreFile = keystoreProperties.getProperty("key.store", "app/codemate.keystore")
-            def keyStorePassword = keystoreProperties.getProperty("key.store.password", "")
-            def keyAlias = keystoreProperties.getProperty("key.alias", "codemate")
-            def keyPassword = keystoreProperties.getProperty("key.alias.password", "")
-
-            // 支持环境变量覆盖
-            def finalKeyStorePassword = System.getenv("KEYSTORE_PASSWORD") ?: keyStorePassword
-            def finalKeyPassword = System.getenv("KEY_ALIAS_PASSWORD") ?: keyPassword
-
-            if (keyStorePassword && keyAliasPassword) {
-                storeFile file(keyStoreFile)
-                storePassword finalKeyStorePassword
-                keyAlias keyAlias
-                keyPassword finalKeyPassword
-            } else {
-                // 使用默认 debug 签名（仅用于测试）
-                storeFile file("${System.getProperty("user.home")}/.android/debug.keystore")
-                storePassword "android"
-                keyAlias "androiddebugkey"
-                keyPassword "android"
-            }
-        }
-
-        // Google Play 签名
-        googlePlay {
-            def keyStoreFile = keystoreProperties.getProperty("google-play.key.store", "")
-            def keyStorePassword = keystoreProperties.getProperty("google-play.key.store.password", "")
-            def keyAlias = keystoreProperties.getProperty("google-play.key.alias", "")
-            def keyPassword = keystoreProperties.getProperty("google-play.key.password", "")
-
-            if (keyStoreFile && keyAlias) {
-                storeFile file(keyStoreFile)
-                storePassword keyStorePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
-            }
+            keyAlias keystoreProperties.getProperty("keyAlias")
+            keyPassword keystoreProperties.getProperty("keyPassword")
+            storeFile keystoreProperties.getProperty("storeFile") ? file(keystoreProperties.getProperty("storeFile")) : null
+            storePassword keystoreProperties.getProperty("storePassword")
         }
     }
 
-    // 构建类型
     buildTypes {
-        debug {
-            applicationIdSuffix ".debug"
-            debuggable true
-            signingConfig signingConfigs.debug
-            // 禁用代码压缩以便调试
+        release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
         }
-
-        release {
-            debuggable false
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
-            // 代码优化
-            zipAlignEnabled true
-            // ProGuard 规则
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        debug {
+            signingConfig signingConfigs.debug
         }
-    }
-
-    // 产品风味（多渠道）
-    flavorDimensions "store"
-
-    productFlavors {
-        googlePlay {
-            dimension "store"
-            applicationIdSuffix ".googleplay"
-            versionNameSuffix "-googleplay"
-            // 使用 Google Play 签名
-            if (keystoreProperties.getProperty("google-play.key.store")) {
-                signingConfig signingConfigs.googlePlay
-            } else {
-                signingConfig signingConfigs.release
-            }
-        }
-
-        huawei {
-            dimension "store"
-            applicationIdSuffix ".huawei"
-            versionNameSuffix "-huawei"
-            signingConfig signingConfigs.release
-        }
-
-        xiaomi {
-            dimension "store"
-            applicationIdSuffix ".xiaomi"
-            versionNameSuffix "-xiaomi"
-            signingConfig signingConfigs.release
-        }
-
-        coolapk {
-            dimension "store"
-            applicationIdSuffix ".coolapk"
-            versionNameSuffix "-coolapk"
-            signingConfig signingConfigs.release
-        }
-
-        // 通用版本（默认）
-        universal {
-            dimension "store"
-            // 不添加后缀
-            signingConfig signingConfigs.release
-        }
-    }
-
-    // 打包选项
-    packagingOptions {
-        exclude "META-INF/DEPENDENCIES"
-        exclude "META-INF/LICENSE"
-        exclude "META-INF/LICENSE.txt"
-        exclude "META-INF/license.txt"
-        exclude "META-INF/NOTICE"
-        exclude "META-INF/NOTICE.txt"
-        exclude "META-INF/notice.txt"
-        exclude "META-INF/ASL2.0"
-        exclude "META-INF/*.kotlin_module"
-    }
-
-    // lint 选项
-    lint {
-        abortOnError false
-        checkReleaseBuilds true
-        // 忽略特定警告
-        disable "GradleDependency", "OldTargetApi"
     }
 }
 
-// Flutter 配置
 flutter {
-    source "../.."
-    assetCompile true
-}
-
-// =============================================================================
-// 自定义 Gradle Task
-// =============================================================================
-
-// 构建完成回调
-tasks.whenTaskActions { task ->
-    if (task.name == 'assembleRelease') {
-        task.doLast {
-            def outputFile = task.outputs.files.singleFile
-            println ""
-            println "=========================================="
-            println "   Release APK 构建完成"
-            println "=========================================="
-            println "路径: ${outputFile.absolutePath}"
-            println "大小: ${outputFile.size() / 1024 / 1024} MB"
-            println "=========================================="
-        }
-    }
-}
-
-// 清理构建缓存
-task cleanBuildCache {
-    doLast {
-        delete {
-            buildDir.eachDir { dir ->
-                if (dir.name.contains("build")) {
-                    delete dir
-                }
-            }
-        }
-        println "构建缓存已清理"
-    }
-}
-
-// 生成构建信息
-task generateBuildInfo {
-    doLast {
-        def buildInfo = [
-            "app_name": "CodeMate",
-            "version": android.defaultConfig.versionName,
-            "version_code": android.defaultConfig.versionCode,
-            "build_type": "release",
-            "build_time": new Date().format("yyyy-MM-dd HH:mm:ss"),
-            "git_commit": project.hasProperty("gitCommit") ? project.property("gitCommit") : "unknown",
-            "flutter_version": project.hasProperty("flutterVersion") ? project.property("flutterVersion") : ""
-        ]
-
-        def infoFile = file("${buildDir}/build_info.json")
-        infoFile.text = groovy.json.JsonOutput.toJson(buildInfo)
-        println "构建信息已生成: ${infoFile.absolutePath}"
-    }
-}
-
-// 签名 APK
-task signApk(type: Exec) {
-    description = "签名 APK"
-    
-    doFirst {
-        if (!keystorePropertiesFile.exists()) {
-            throw new GradleException("签名配置文件不存在: ${keystorePropertiesFile.absolutePath}")
-        }
-    }
-    
-    // 使用 apksigner 或 jarsigner
-    def unsignedApk = "${buildDir}/outputs/flutter-apk/app-release-unsigned.apk"
-    def signedApk = "${buildDir}/outputs/flutter-apk/app-release.apk"
-    def keyStoreFile = keystoreProperties.getProperty("key.store")
-    def keyAlias = keystoreProperties.getProperty("key.alias")
-    def keyStorePassword = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties.getProperty("key.store.password")
-    def keyPassword = System.getenv("KEY_ALIAS_PASSWORD") ?: keystoreProperties.getProperty("key.alias.password")
-
-    // Zipalign
-    commandLine "zipalign", "-v", "-p", "4", unsignedApk, "${buildDir}/app-release-aligned.apk"
-
-    // Sign
-    commandLine "apksigner", "sign",
-        "--ks", keyStoreFile,
-        "--ks-key-alias", keyAlias,
-        "--ks-pass", "pass:${keyStorePassword}",
-        "--key-pass", "pass:${keyPassword}",
-        "--out", signedApk,
-        "${buildDir}/app-release-aligned.apk"
-}
-
-// 验证签名
-task verifySignature(type: Exec) {
-    description = "验证 APK 签名"
-    
-    doFirst {
-        def signedApk = "${buildDir}/outputs/flutter-apk/app-release.apk"
-        if (!file(signedApk).exists()) {
-            throw new GradleException("签名后的 APK 不存在: ${signedApk}")
-        }
-    }
-    
-    commandLine "apksigner", "verify", "-v", "${buildDir}/outputs/flutter-apk/app-release.apk"
-}
-
-// 依赖配置
-dependencies {
-    // AndroidX
-    implementation "androidx.core:core-ktx:1.12.0"
-    implementation "androidx.appcompat:appcompat:1.6.1"
-    implementation "com.google.android.material:material:1.11.0"
-    implementation "androidx.constraintlayout:constraintlayout:2.1.4"
-    
-    // 测试
-    testImplementation "junit:junit:4.13.2"
-    androidTestImplementation "androidx.test.ext:junit:1.1.5"
-    androidTestImplementation "androidx.test.espresso:espresso-core:3.5.1"
+    source = "../.."
 }

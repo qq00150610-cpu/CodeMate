@@ -4,81 +4,88 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader("UTF-8") { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
-if (flutterVersionCode == null) {
-    flutterVersionCode = "1"
-}
-
-def flutterVersionName = localProperties.getProperty("flutter.versionName")
-if (flutterVersionName == null) {
-    flutterVersionName = "1.0"
-}
-
-def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+
 if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.withReader("UTF-8") { reader ->
-        keystoreProperties.load(reader)
-    }
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
 android {
-    namespace = "com.codemate.editor"
-    compileSdk = 34
-    ndkVersion = flutter.ndkVersion
+    namespace "com.codemate.editor"
+    compileSdk 34
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "1.8"
     }
 
-    defaultConfig {
-        applicationId = "com.codemate.editor"
-        minSdk = 24
-        targetSdk = 34
-        versionCode = flutterVersionCode.toInteger()
-        versionName = flutterVersionName
+    sourceSets {
+        main {
+            manifest.srcFile "src/main/AndroidManifest.xml"
+            java.srcDirs = ["src/main/kotlin"]
+            assets.srcDirs = ["src/main/assets"]
+        }
     }
 
     signingConfigs {
-        if (keystoreProperties.getProperty("storeFile") != null) {
-            release {
-                keyAlias keystoreProperties.getProperty("keyAlias")
-                keyPassword keystoreProperties.getProperty("keyPassword")
-                storeFile file(keystoreProperties.getProperty("storeFile"))
-                storePassword keystoreProperties.getProperty("storePassword")
+        debug {
+            storeFile file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties.getProperty("key.store", "app/codemate.keystore"))
+                storePassword keystoreProperties.getProperty("key.store.password", "qq900236")
+                keyAlias keystoreProperties.getProperty("key.alias", "codemate")
+                keyPassword keystoreProperties.getProperty("key.alias.password", "qq900236")
             }
         }
     }
 
     buildTypes {
-        release {
-            if (keystoreProperties.getProperty("storeFile") != null) {
-                signingConfig signingConfigs.release
-            }
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+            signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
+
+        release {
+            debuggable false
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+
+    packagingOptions {
+        exclude "META-INF/DEPENDENCIES"
+        exclude "META-INF/LICENSE"
+        exclude "META-INF/LICENSE.txt"
+        exclude "META-INF/license.txt"
+        exclude "META-INF/NOTICE"
+        exclude "META-INF/NOTICE.txt"
+        exclude "META-INF/notice.txt"
+        exclude "META-INF/ASL2.0"
+        exclude "META-INF/*.kotlin_module"
+    }
+
+    lint {
+        abortOnError false
     }
 }
 
-dependencies {
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
-    implementation "androidx.core:core:1.12.0"
-}
-
 flutter {
-    source = "../.."
+    source "../.."
 }

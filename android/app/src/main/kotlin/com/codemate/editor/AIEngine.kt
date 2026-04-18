@@ -1,7 +1,5 @@
-// =============================================================================
-// AI Engine - Android 原生 AI 服务实现
-// 支持阿里云百炼 API
-// =============================================================================
+// android/app/src/main/kotlin/com/codemate/editor/AIEngine.kt
+// AI 引擎 - 处理 AI 编程助手核心逻辑
 
 package com.codemate.editor
 
@@ -9,44 +7,29 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONObject
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
- * AI 引擎 - 处理 AI 编程助手核心逻辑
+ * AI 引擎 - 模拟 AI 处理逻辑
  * 
  * 核心功能：
  * 1. 关键词识别与路由
- * 2. 代码分析（解释、优化、调试等）
- * 3. Flutter 通信
- * 4. 阿里云百炼 API 调用
+ * 2. 代码分析
+ * 3. VSCode API 集成
+ * 4. AI 响应生成（模拟）
  */
 class AIEngine(private val context: Context) {
     
     companion object {
         private const val TAG = "AIEngine"
         private const val CHANNEL_NAME = "com.codemate.ai"
-        
-        // 阿里云百炼 API 配置
-        const val BAI_LIAN_API_KEY = "sk-e511f943447849769e588927c03fcffe"
-        const val BAI_LIAN_BASE_URL = "https://dashscope.aliyuncs.com/api/v1"
-        const val DEFAULT_MODEL = "qwen-turbo"
-        
-        // 请求配置
-        const val TIMEOUT_SECONDS = 30L
-        const val MAX_RETRIES = 3
-        const val RETRY_DELAY_MS = 1000L
     }
 
-    // =============================================================================
     // 关键词处理器映射
-    // =============================================================================
-    
     private val keywordHandlers = mutableMapOf(
         "解释" to ::handleExplain,
         "优化" to ::handleOptimize,
@@ -77,19 +60,10 @@ class AIEngine(private val context: Context) {
     private var currentLanguage: String? = null
     private var selectedCode: String? = null
 
-    // AI 请求配置
-    private var apiKey: String = BAI_LIAN_API_KEY
-    private var baseUrl: String = BAI_LIAN_BASE_URL
-    private var currentModel: String = DEFAULT_MODEL
-
-    // =============================================================================
-    // 初始化
-    // =============================================================================
-    
     /**
      * 初始化 MethodChannel
      */
-    fun initializeChannel(messenger: BinaryMessenger) {
+    fun initializeChannel(messenger: io.flutter.plugin.common.BinaryMessenger) {
         methodChannel = MethodChannel(messenger, CHANNEL_NAME).apply {
             setMethodCallHandler { call, result ->
                 handleMethodCall(call, result)
@@ -98,20 +72,6 @@ class AIEngine(private val context: Context) {
         Log.d(TAG, "AI Engine initialized")
     }
 
-    /**
-     * 配置 API
-     */
-    fun configure(apiKey: String, baseUrl: String, model: String) {
-        this.apiKey = apiKey
-        this.baseUrl = baseUrl
-        this.currentModel = model
-        Log.d(TAG, "AI configured: model=$model")
-    }
-
-    // =============================================================================
-    // MethodChannel 处理
-    // =============================================================================
-    
     /**
      * 处理 MethodChannel 调用
      */
@@ -152,13 +112,12 @@ class AIEngine(private val context: Context) {
             }
 
             "testConnection" -> {
-                testConnection()
-            }
-
-            "setApiConfig" -> {
-                apiKey = call.argument<String>("apiKey") ?: apiKey
-                baseUrl = call.argument<String>("baseUrl") ?: baseUrl
-                currentModel = call.argument<String>("model") ?: DEFAULT_MODEL
+                // 模拟连接测试
+                simulateDelay()
+                sendAIMessage(mapOf(
+                    "type" to "connection_status",
+                    "connected" to true
+                ))
                 result.success(true)
             }
 
@@ -166,10 +125,6 @@ class AIEngine(private val context: Context) {
         }
     }
 
-    // =============================================================================
-    // 消息处理
-    // =============================================================================
-    
     /**
      * 处理用户消息
      */
@@ -188,8 +143,8 @@ class AIEngine(private val context: Context) {
                 if (handler != null) {
                     handler.invoke(remainingMessage, code ?: selectedCode ?: "")
                 } else {
-                    // 默认处理：通用问答，调用百炼 API
-                    sendToBaiLian(remainingMessage, code ?: selectedCode ?: "")
+                    // 默认处理：通用问答
+                    handleGeneralQuestion(message, code ?: selectedCode ?: "")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing message", e)
@@ -214,508 +169,350 @@ class AIEngine(private val context: Context) {
         return null to trimmedMessage
     }
 
-    // =============================================================================
-    // 阿里云百炼 API 调用
-    // =============================================================================
-    
-    /**
-     * 发送请求到阿里云百炼 API
-     */
-    private fun sendToBaiLian(userMessage: String, code: String? = null) {
-        executor.execute {
-            try {
-                sendStatus("thinking", 0.0, null)
-                
-                // 构建消息内容
-                var content = userMessage
-                if (!code.isNullOrEmpty()) {
-                    content = """$userMessage
-
-请分析以下${currentLanguage ?: "代码"}：
-```${currentLanguage ?: ""}
-$code
-```"""
-                }
-                
-                // 构建请求体（百炼 API 格式）
-                val requestBody = JSONObject().apply {
-                    put("model", currentModel)
-                    put("input", JSONObject().apply {
-                        put("messages", org.json.JSONArray().apply {
-                            put(JSONObject().apply {
-                                put("role", "user")
-                                put("content", content)
-                            })
-                        })
-                    })
-                    put("parameters", JSONObject().apply {
-                        put("temperature", 0.7)
-                        put("max_tokens", 2000)
-                        put("result_format", "message")
-                    })
-                }
-                
-                // 调用 API
-                val response = callBaiLianApi(requestBody)
-                
-                // 解析响应
-                if (response.has("output")) {
-                    val output = response.getJSONObject("output")
-                    val text = if (output.has("text")) {
-                        output.getString("text")
-                    } else if (output.has("choices")) {
-                        output.getJSONArray("choices")
-                            .getJSONObject(0)
-                            .getJSONObject("message")
-                            .getString("content")
-                    } else {
-                        "收到响应，但无法解析内容"
-                    }
-                    
-                    // 提取代码块
-                    val codeBlock = extractCodeBlock(text)
-                    
-                    sendAIMessage(mapOf(
-                        "type" to "response",
-                        "content" to text,
-                        "code" to codeBlock,
-                        "language" to (codeBlock?.let { detectLanguage(it) }),
-                        "model" to currentModel
-                    ))
-                } else {
-                    sendError(response.optString("error_message", "API 调用失败"))
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error calling BaiLian API", e)
-                sendError("AI 服务暂时不可用: ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * 调用百炼 API
-     */
-    private fun callBaiLianApi(requestBody: JSONObject): JSONObject {
-        var lastException: Exception? = null
-        
-        for (attempt in 1..MAX_RETRIES) {
-            try {
-                val url = java.net.URL("$baseUrl/services/aigc/text-generation/generation")
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.setRequestProperty("Authorization", "Bearer $apiKey")
-                connection.setRequestProperty("Accept", "application/json")
-                connection.doOutput = true
-                connection.connectTimeout = (TIMEOUT_SECONDS * 1000).toInt()
-                connection.readTimeout = (TIMEOUT_SECONDS * 1000).toInt()
-                
-                // 写入请求体
-                connection.outputStream.use { output ->
-                    output.write(requestBody.toString().toByteArray())
-                }
-                
-                // 读取响应
-                val responseCode = connection.responseCode
-                val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
-                
-                if (responseCode == 200) {
-                    return JSONObject(responseBody)
-                } else {
-                    Log.e(TAG, "API error: $responseCode - $responseBody")
-                    lastException = Exception("API error: $responseCode")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Attempt $attempt failed", e)
-                lastException = e
-                
-                // 重试延迟
-                if (attempt < MAX_RETRIES) {
-                    Thread.sleep(RETRY_DELAY_MS)
-                }
-            }
-        }
-        
-        throw lastException ?: Exception("Unknown error")
-    }
-
-    // =============================================================================
-    // 关键词处理器
-    // =============================================================================
-    
     /**
      * 解释代码
      */
     private fun handleExplain(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要解释的代码")
-            return
+        simulateDelay()
+        
+        val explanation = buildString {
+            appendLine("## 📖 代码解释")
+            appendLine()
+            appendLine("以下是选中代码的功能分析：")
+            appendLine()
+            
+            if (code.isNotEmpty()) {
+                appendLine("```${currentLanguage ?: "code"}")
+                appendLine(code)
+                appendLine("```")
+                appendLine()
+                
+                // 简单分析
+                when {
+                    code.contains("fun ") || code.contains("def ") -> {
+                        appendLine("**类型：** 函数/方法定义")
+                        appendLine("**分析：** 这段代码定义了一个函数，通常用于封装可重用的逻辑。")
+                    }
+                    code.contains("class ") -> {
+                        appendLine("**类型：** 类定义")
+                        appendLine("**分析：** 这是一个类定义，用于面向对象编程。")
+                    }
+                    code.contains("val ") || code.contains("var ") -> {
+                        appendLine("**类型：** 变量声明")
+                        appendLine("**分析：** 这段代码声明了一个变量，用于存储数据。")
+                    }
+                    code.contains("if ") || code.contains("when ") -> {
+                        appendLine("**类型：** 条件判断")
+                        appendLine("**分析：** 这段代码根据条件执行不同的逻辑分支。")
+                    }
+                    code.contains("for ") || code.contains("while ") -> {
+                        appendLine("**类型：** 循环结构")
+                        appendLine("**分析：** 这段代码用于重复执行某段逻辑。")
+                    }
+                    else -> {
+                        appendLine("**类型：** 代码片段")
+                        appendLine("**分析：** 这是一段代码实现。")
+                    }
+                }
+            } else {
+                appendLine("未检测到选中的代码。")
+                appendLine("请先在编辑器中选中要解释的代码。")
+            }
         }
         
-        val prompt = buildString {
-            appendLine("请详细解释以下${currentLanguage ?: "代码"}的功能和工作原理：")
-            appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            appendLine()
-            appendLine("请用清晰易懂的方式解释，包括：")
-            appendLine("1. 整体功能概述")
-            appendLine("2. 主要组件和逻辑")
-            appendLine("3. 关键代码段的作用")
-        }
-        
-        sendToBaiLian(prompt)
+        sendAIMessage(mapOf(
+            "type" to "response",
+            "content" to explanation,
+            "action" to "explain"
+        ))
     }
 
     /**
      * 优化代码
      */
     private fun handleOptimize(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要优化的代码")
-            return
-        }
+        simulateDelay()
         
-        val prompt = buildString {
-            appendLine("请优化以下${currentLanguage ?: "代码"}，提高性能和可读性：")
+        val optimization = buildString {
+            appendLine("## 🔧 代码优化建议")
             appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            appendLine()
-            appendLine("请提供：")
-            appendLine("1. 优化前的问题分析")
-            appendLine("2. 优化后的代码")
-            appendLine("3. 优化说明")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    /**
-     * 重构代码
-     */
-    private fun handleRefactor(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要重构的代码")
-            return
-        }
-        
-        val prompt = buildString {
-            appendLine("请重构以下${currentLanguage ?: "代码"}，改善其结构和设计：")
-            appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            appendLine()
-            appendLine("请提供：")
-            appendLine("1. 当前问题分析")
-            appendLine("2. 重构后的代码")
-            appendLine("3. 重构原因说明")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    /**
-     * 调试代码
-     */
-    private fun handleDebug(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要调试的代码")
-            return
-        }
-        
-        val prompt = buildString {
-            appendLine("请分析以下${currentLanguage ?: "代码"}可能存在的问题并提供修复建议：")
-            appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            appendLine()
-            appendLine("请检查：")
-            appendLine("1. 潜在的 Bug")
-            appendLine("2. 安全风险")
-            appendLine("3. 性能问题")
-            appendLine("4. 最佳实践建议")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    /**
-     * 翻译代码
-     */
-    private fun handleTranslate(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要翻译的代码")
-            return
-        }
-        
-        val targetLanguage = remainingMessage.ifEmpty { "Python" }
-        
-        val prompt = buildString {
-            appendLine("请将以下代码翻译成 $targetLanguage：")
-            appendLine()
-            appendLine("原始代码 (${currentLanguage ?: "未知"})：")
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            appendLine()
-            appendLine("请只提供翻译后的代码，不需要解释。")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    /**
-     * 生成代码
-     */
-    private fun handleGenerate(remainingMessage: String, code: String) {
-        if (remainingMessage.isEmpty()) {
-            sendError("请描述要生成的代码功能")
-            return
-        }
-        
-        val prompt = buildString {
-            appendLine("请根据以下需求生成代码：")
-            appendLine()
-            appendLine(remainingMessage)
-            if (!code.isEmpty()) {
-                appendLine()
-                appendLine("参考现有代码风格：")
-                appendLine("```${currentLanguage ?: ""}")
+            
+            if (code.isNotEmpty()) {
+                appendLine("### 原始代码")
+                appendLine("```${currentLanguage ?: "code"}")
                 appendLine(code)
                 appendLine("```")
+                appendLine()
+                
+                // 检测可优化的问题
+                val issues = mutableListOf<String>()
+                
+                if (code.contains("for (i in 0..")) {
+                    issues.add("- 考虑使用 `forEach` 或更函数式的方式替代传统 for 循环")
+                }
+                if (code.contains("var ") && !code.contains("+=") && !code.contains("-=")) {
+                    issues.add("- 如果变量初始化后不再修改，考虑使用 `val`")
+                }
+                if (code.count { it == '\n' } > 20) {
+                    issues.add("- 代码较长，建议拆分为更小的函数")
+                }
+                
+                if (issues.isNotEmpty()) {
+                    appendLine("### 发现的问题")
+                    issues.forEach { appendLine(it) }
+                    appendLine()
+                }
+                
+                appendLine("### 优化建议")
+                appendLine("1. 保持代码简洁清晰")
+                appendLine("2. 避免重复代码，考虑抽取公共方法")
+                appendLine("3. 添加适当的注释说明")
+                appendLine("4. 考虑使用更现代的语法糖")
+            } else {
+                appendLine("请先选中要优化的代码。")
             }
         }
         
-        sendToBaiLian(prompt)
+        sendAIMessage(mapOf(
+            "type" to "response",
+            "content" to optimization,
+            "action" to "optimize",
+            "code" to code,
+            "language" to currentLanguage
+        ))
     }
 
     /**
      * 添加注释
      */
     private fun handleComment(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要添加注释的代码")
-            return
-        }
+        simulateDelay()
         
-        val prompt = buildString {
-            appendLine("请为以下代码添加详细的中文注释：")
+        val commentedCode = buildString {
+            appendLine("## 📝 添加注释后的代码")
             appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    /**
-     * 查找问题
-     */
-    private fun handleFind(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要检查的代码")
-            return
-        }
-        
-        val prompt = buildString {
-            appendLine("请在以下代码中查找问题：")
-            appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            appendLine()
-            appendLine("查找内容：$remainingMessage")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    /**
-     * 处理 Bug
-     */
-    private fun handleBug(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要修复 Bug 的代码")
-            return
-        }
-        
-        val prompt = buildString {
-            appendLine("请修复以下代码中的 Bug：")
-            appendLine()
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-            if (remainingMessage.isNotEmpty()) {
+            
+            if (code.isNotEmpty()) {
+                appendLine("```${currentLanguage ?: "code"}")
+                appendLine("// " + "-".repeat(50))
+                appendLine("// 文件: ${currentFileName ?: "unknown"}")
+                appendLine("// 功能: [请根据实际功能填写]")
+                appendLine("// 作者: CodeMate AI")
+                appendLine("// 日期: ${java.text.SimpleDateFormat("yyyy-MM-dd").format(java.util.Date())}")
+                appendLine("// " + "-".repeat(50))
                 appendLine()
-                appendLine("问题描述：$remainingMessage")
+                
+                // 为每一行添加注释
+                code.lines().forEach { line ->
+                    if (line.isNotBlank()) {
+                        appendLine("$line // TODO: 添加注释说明")
+                    } else {
+                        appendLine(line)
+                    }
+                }
+                appendLine("```")
+            } else {
+                appendLine("请先选中要添加注释的代码。")
             }
         }
         
-        sendToBaiLian(prompt)
+        sendAIMessage(mapOf(
+            "type" to "response",
+            "content" to commentedCode,
+            "action" to "insert_code",
+            "code" to commentedCode,
+            "language" to currentLanguage
+        ))
+    }
+
+    /**
+     * 查找 Bug
+     */
+    private fun handleBug(remainingMessage: String, code: String) {
+        simulateDelay()
+        
+        val bugReport = buildString {
+            appendLine("## 🐛 Bug 检查报告")
+            appendLine()
+            
+            if (code.isNotEmpty()) {
+                val bugs = mutableListOf<Pair<String, String>>()
+                
+                // 检测常见问题
+                if (code.contains("==") && !code.contains("===")) {
+                    bugs.add("潜在问题" to "建议使用 === 进行严格相等比较，避免类型转换带来的意外行为")
+                }
+                if (code.contains("catch") && !code.contains("e.printStackTrace")) {
+                    bugs.add("空 catch 块" to "catch 块中应该处理或记录异常，而不是空着")
+                }
+                if (code.contains("TODO") || code.contains("FIXME")) {
+                    bugs.add("未完成代码" to "代码中包含 TODO 或 FIXME 标记，需要完成")
+                }
+                if (code.contains("null") && !code.contains("?.")) {
+                    bugs.add("空指针风险" to "建议使用空安全操作符 ?. 避免空指针异常")
+                }
+                if (code.contains("Thread.sleep") || code.contains("while (true)")) {
+                    bugs.add("阻塞风险" to "代码可能导致线程阻塞，考虑异步处理")
+                }
+                
+                if (bugs.isNotEmpty()) {
+                    appendLine("### 发现 ${bugs.size} 个潜在问题\n")
+                    bugs.forEachIndexed { index, (title, desc) ->
+                        appendLine("**${index + 1}. $title**")
+                        appendLine(desc)
+                        appendLine()
+                    }
+                } else {
+                    appendLine("✅ 未发现明显问题")
+                    appendLine()
+                    appendLine("代码看起来基本正确，但建议：")
+                    appendLine("- 添加边界条件检查")
+                    appendLine("- 添加适当的错误处理")
+                    appendLine("- 编写单元测试验证")
+                }
+            } else {
+                appendLine("请先选中要检查的代码。")
+            }
+        }
+        
+        sendAIMessage(mapOf(
+            "type" to "response",
+            "content" to bugReport
+        ))
     }
 
     /**
      * 生成测试
      */
     private fun handleTest(remainingMessage: String, code: String) {
-        if (code.isEmpty()) {
-            sendError("请先选中要生成测试的代码")
-            return
-        }
+        simulateDelay()
         
-        val testFramework = remainingMessage.ifEmpty { "JUnit" }
-        
-        val prompt = buildString {
-            appendLine("请为以下代码生成 $testFramework 单元测试用例：")
+        val testCode = buildString {
+            appendLine("## ✅ 生成的单元测试")
             appendLine()
-            appendLine("原始代码：")
-            appendLine("```${currentLanguage ?: ""}")
-            appendLine(code)
-            appendLine("```")
-        }
-        
-        sendToBaiLian(prompt)
-    }
-
-    // =============================================================================
-    // 代码分析（快捷调用）
-    // =============================================================================
-    
-    /**
-     * 解释代码
-     */
-    private fun explainCode(code: String) {
-        handleExplain("", code)
-    }
-
-    /**
-     * 优化代码
-     */
-    private fun optimizeCode(code: String) {
-        handleOptimize("", code)
-    }
-
-    /**
-     * 生成测试
-     */
-    private fun generateTest(code: String, testFramework: String) {
-        handleTest(testFramework, code)
-    }
-
-    /**
-     * 测试连接
-     */
-    private fun testConnection() {
-        executor.execute {
-            try {
-                sendStatus("checking", 0.0, null)
+            
+            if (code.isNotEmpty()) {
+                val language = currentLanguage ?: "kotlin"
                 
-                // 简单的连接测试
-                val url = java.net.URL("$baseUrl/services/aigc/text-generation/generation")
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.setRequestProperty("Authorization", "Bearer $apiKey")
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                
-                // 发送测试请求
-                val testRequest = JSONObject().apply {
-                    put("model", currentModel)
-                    put("input", JSONObject().apply {
-                        put("messages", org.json.JSONArray().apply {
-                            put(JSONObject().apply {
-                                put("role", "user")
-                                put("content", "Hi")
-                            })
-                        })
-                    })
-                    put("parameters", JSONObject().apply {
-                        put("max_tokens", 10)
-                    })
+                when {
+                    language.contains("kotlin") || language.contains("java") -> {
+                        appendLine("```kotlin")
+                        appendLine("import org.junit.Test")
+                        appendLine("import org.junit.Assert.*")
+                        appendLine()
+                        appendLine("class ExampleTest {")
+                        appendLine()
+                        appendLine("    @Test")
+                        appendLine("    fun `test case description`() {")
+                        appendLine("        // Arrange")
+                        appendLine("        // Act")
+                        appendLine("        // Assert")
+                        appendLine("        assertTrue(true)")
+                        appendLine("    }")
+                        appendLine("}")
+                        appendLine("```")
+                    }
+                    language.contains("javascript") || language.contains("typescript") -> {
+                        appendLine("```javascript")
+                        appendLine("describe('Example', () => {")
+                        appendLine("    it('should do something', () => {")
+                        appendLine("        // Arrange")
+                        appendLine("        // Act")
+                        appendLine("        // Assert")
+                        appendLine("        expect(true).toBe(true)")
+                        appendLine("    })")
+                        appendLine("})")
+                        appendLine("```")
+                    }
+                    language.contains("python") -> {
+                        appendLine("```python")
+                        appendLine("import unittest")
+                        appendLine()
+                        appendLine("class TestExample(unittest.TestCase):")
+                        appendLine()
+                        appendLine("    def test_case(self):")
+                        appendLine("        # Arrange")
+                        appendLine("        # Act")
+                        appendLine("        # Assert")
+                        appendLine("        self.assertTrue(True)")
+                        appendLine()
+                        appendLine("if __name__ == '__main__':")
+                        appendLine("    unittest.main()")
+                        appendLine("```")
+                    }
                 }
                 
-                connection.doOutput = true
-                connection.outputStream.use { output ->
-                    output.write(testRequest.toString().toByteArray())
-                }
-                
-                val responseCode = connection.responseCode
-                
-                mainHandler.post {
-                    sendAIMessage(mapOf(
-                        "type" to "connection_status",
-                        "connected" to (responseCode in 200..299)
-                    ))
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Connection test failed", e)
-                mainHandler.post {
-                    sendAIMessage(mapOf(
-                        "type" to "connection_status",
-                        "connected" to false,
-                        "error" to e.message
-                    ))
-                }
+                appendLine("\n**使用说明：**")
+                appendLine("1. 将测试文件添加到项目的测试目录")
+                appendLine("2. 根据实际需求修改测试用例")
+                appendLine("3. 运行测试验证代码功能")
+            } else {
+                appendLine("请先选中要生成测试的代码。")
             }
         }
+        
+        sendAIMessage(mapOf(
+            "type" to "response",
+            "content" to testCode,
+            "action" to "insert_code"
+        ))
     }
 
-    // =============================================================================
-    // 工具函数
-    // =============================================================================
+    // 其他处理器...
+    private fun handleRefactor(msg: String, code: String) = handleOptimize(msg, code)
+    private fun handleDebug(msg: String, code: String) = handleBug(msg, code)
+    private fun handleTranslate(msg: String, code: String) = handleGeneralQuestion(msg, code)
+    private fun handleGenerate(msg: String, code: String) = handleTest(msg, code)
     
+    private fun handleGeneralQuestion(message: String, code: String) {
+        simulateDelay()
+        
+        val response = buildString {
+            appendLine("## 💬 AI 助手")
+            appendLine()
+            appendLine("我收到了您的消息：")
+            appendLine("> $message")
+            appendLine()
+            
+            if (code.isNotEmpty()) {
+                appendLine("当前选中的代码片段：")
+                appendLine("```${currentLanguage ?: "code"}")
+                appendLine(code.take(200) + if (code.length > 200) "..." else "")
+                appendLine("```")
+                appendLine()
+            }
+            
+            appendLine("**我可以帮助您：**")
+            appendLine("- 🔍 解释代码功能")
+            appendLine("- 🔧 优化代码性能")
+            appendLine("- 🐛 查找潜在 Bug")
+            appendLine("- ✅ 生成单元测试")
+            appendLine("- 📝 添加代码注释")
+            appendLine()
+            appendLine("请告诉我您需要什么帮助！")
+        }
+        
+        sendAIMessage(mapOf(
+            "type" to "response",
+            "content" to response
+        ))
+    }
+
     /**
-     * 模拟延迟
+     * 模拟 AI 处理延迟
      */
     private fun simulateDelay() {
-        val delay = minDelay + (Math.random() * (maxDelay - minDelay)).toLong()
-        Thread.sleep(delay)
+        Thread.sleep(minDelay + (Math.random() * (maxDelay - minDelay)).toLong())
     }
 
-    /**
-     * 提取代码块
-     */
-    private fun extractCodeBlock(text: String): String? {
-        val regex = Regex("```[\\w]*\\n?([\\s\\S]*?)```")
-        val match = regex.find(text)
-        return match?.groupValues?.getOrNull(1)?.trim()
-    }
-
-    /**
-     * 检测编程语言
-     */
-    private fun detectLanguage(code: String): String {
-        return when {
-            code.contains("fun ") || code.contains("val ") || code.contains("var ") -> "kotlin"
-            code.contains("class ") && code.contains(";") -> "java"
-            code.contains("def ") || (code.contains("import ") && !code.contains("{")) -> "python"
-            code.contains("function ") || code.contains("const ") || code.contains("=>") -> "javascript"
-            code.contains("fn ") && code.contains("->") -> "rust"
-            code.contains("#include") || code.contains("int main") -> "cpp"
-            else -> "code"
-        }
-    }
-
-    // =============================================================================
-    // 消息发送
-    // =============================================================================
-    
     /**
      * 发送 AI 消息到 Flutter
      */
     private fun sendAIMessage(data: Map<String, Any?>) {
         mainHandler.post {
             try {
-                methodChannel?.invokeMethod("onAIMessage", JSONObject(data).toString())
+                val jsonData = JSONObject(data).toString()
+                methodChannel?.invokeMethod("onAIMessage", jsonData)
                 resultCallback?.success(true)
             } catch (e: Exception) {
                 Log.e(TAG, "Error sending AI message", e)
@@ -725,28 +522,7 @@ $code
     }
 
     /**
-     * 发送状态到 Flutter
-     */
-    private fun sendStatus(status: String, progress: Double, data: Any?) {
-        val statusData = JSONObject().apply {
-            put("status", status)
-            put("progress", progress)
-            if (data != null) {
-                put("data", data)
-            }
-        }
-        
-        mainHandler.post {
-            try {
-                methodChannel?.invokeMethod("onStatusChanged", statusData.toString())
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sending status", e)
-            }
-        }
-    }
-
-    /**
-     * 发送错误到 Flutter
+     * 发送错误消息
      */
     private fun sendError(message: String) {
         sendAIMessage(mapOf(
@@ -756,17 +532,22 @@ $code
     }
 
     /**
-     * 释放资源
+     * 获取选中的代码
+     */
+    fun getSelectedCode(): String? = selectedCode
+
+    /**
+     * 设置选中的代码
+     */
+    fun setSelectedCode(code: String?) {
+        selectedCode = code
+    }
+
+    /**
+     * 清理资源
      */
     fun dispose() {
         executor.shutdown()
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow()
-            }
-        } catch (e: InterruptedException) {
-            executor.shutdownNow()
-        }
         methodChannel?.setMethodCallHandler(null)
         methodChannel = null
     }

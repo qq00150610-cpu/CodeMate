@@ -1,26 +1,12 @@
 // lib/features/ai_assistant/models/ai_models.dart
-// =============================================================================
-// AI 模型配置 - 阿里云百炼模型
-// =============================================================================
+// AI 模型配置
 
 import 'dart:convert';
 
-/// =============================================================================
-// AI 模型提供商
-// =============================================================================
-
-/// AI 提供商枚举
+/// AI 模型提供商
 enum AIProvider {
-  /// 阿里云百炼（主要使用）
-  bailian,
-  
-  /// OpenAI（兼容模式，可配置自定义接口）
   openai,
-  
-  /// Claude（兼容模式，可配置自定义接口）
   claude,
-  
-  /// 本地 Ollama
   ollama,
 }
 
@@ -59,7 +45,7 @@ class AIModel {
         name: json['name'] as String,
         provider: AIProvider.values.firstWhere(
           (e) => e.name == json['provider'],
-          orElse: () => AIProvider.bailian,
+          orElse: () => AIProvider.openai,
         ),
         description: json['description'] as String,
         maxTokens: json['maxTokens'] as int? ?? 4096,
@@ -74,102 +60,11 @@ class AIModel {
 
   @override
   int get hashCode => id.hashCode;
-
-  @override
-  String toString() => 'AIModel($name - $id)';
 }
 
-/// =============================================================================
-// 预定义 AI 模型 - 阿里云百炼
-// =============================================================================
-
-/// 阿里云百炼模型集合
-class BaiLianModels {
-  /// 通义千问-超快速版
-  /// 适合日常对话和简单任务，响应速度快
-  static const qwenTurbo = AIModel(
-    id: 'qwen-turbo',
-    name: '通义千问-超快速',
-    provider: AIProvider.bailian,
-    description: '超快速响应，适合日常对话和简单任务',
-    maxTokens: 8192,
-    inputCostPer1K: 0.001,
-    outputCostPer1K: 0.002,
-  );
-
-  /// 通义千问-均衡版
-  /// 平衡性能与成本，适合大多数使用场景
-  static const qwenPlus = AIModel(
-    id: 'qwen-plus',
-    name: '通义千问-均衡',
-    provider: AIProvider.bailian,
-    description: '均衡性能与成本，适合大多数场景',
-    maxTokens: 32768,
-    inputCostPer1K: 0.003,
-    outputCostPer1K: 0.009,
-  );
-
-  /// 通义千问-最强版
-  /// 最高能力，适合复杂任务和深度分析
-  static const qwenMax = AIModel(
-    id: 'qwen-max',
-    name: '通义千问-最强',
-    provider: AIProvider.bailian,
-    description: '最强能力，适合复杂任务和深度分析',
-    maxTokens: 32768,
-    inputCostPer1K: 0.02,
-    outputCostPer1K: 0.06,
-  );
-
-  /// 通义千问-长文本版
-  /// 支持超长上下文
-  static const qwenLong = AIModel(
-    id: 'qwen-long',
-    name: '通义千问-长文本',
-    provider: AIProvider.bailian,
-    description: '支持超长上下文，适合文档分析',
-    maxTokens: 100000,
-    inputCostPer1K: 0.005,
-    outputCostPer1K: 0.015,
-  );
-
-  /// 代码专家模型
-  /// 专门优化用于代码生成和分析
-  static const codeqwen = AIModel(
-    id: 'codeqwen-turbo',
-    name: '通义灵码-代码专家',
-    provider: AIProvider.bailian,
-    description: '代码生成、分析、调试专家',
-    maxTokens: 8192,
-    inputCostPer1K: 0.001,
-    outputCostPer1K: 0.002,
-  );
-
-  /// 获取所有百炼模型
-  static List<AIModel> get allModels => [
-        qwenTurbo,
-        qwenPlus,
-        qwenMax,
-        qwenLong,
-        codeqwen,
-      ];
-
-  /// 获取代码相关模型
-  static List<AIModel> get codeModels => [codeqwen, qwenTurbo, qwenPlus];
-
-  /// 获取长文本处理模型
-  static List<AIModel> get longContextModels => [qwenLong, qwenMax];
-
-  /// 默认推荐模型
-  static AIModel get defaultModel => qwenTurbo;
-}
-
-/// =============================================================================
-// 兼容模型（用于自定义接口配置）
-// =============================================================================
-
-/// OpenAI 模型（需配置自定义后端）
-class OpenAIModels {
+/// 预定义 AI 模型
+class AIModels {
+  // OpenAI 模型
   static const gpt4o = AIModel(
     id: 'gpt-4o',
     name: 'GPT-4o',
@@ -200,11 +95,7 @@ class OpenAIModels {
     outputCostPer1K: 1.5,
   );
 
-  static List<AIModel> get allModels => [gpt4o, gpt4Turbo, gpt35Turbo];
-}
-
-/// Claude 模型（需配置自定义后端）
-class ClaudeModels {
+  // Claude 模型
   static const claudeOpus = AIModel(
     id: 'claude-3-opus-20240229',
     name: 'Claude 3 Opus',
@@ -235,11 +126,7 @@ class ClaudeModels {
     outputCostPer1K: 1.25,
   );
 
-  static List<AIModel> get allModels => [claudeOpus, claudeSonnet, claudeHaiku];
-}
-
-/// Ollama 本地模型
-class OllamaModels {
+  // Ollama 本地模型
   static const llama3 = AIModel(
     id: 'llama3',
     name: 'Llama 3',
@@ -270,49 +157,32 @@ class OllamaModels {
     outputCostPer1K: 0,
   );
 
-  static List<AIModel> get allModels => [llama3, codellama, mistral];
-}
-
-/// =============================================================================
-// 模型集合
-// =============================================================================
-
-/// 所有可用的 AI 模型
-class AIModels {
   /// 获取所有模型
   static List<AIModel> get allModels => [
-        ...BaiLianModels.allModels,
-        ...OpenAIModels.allModels,
-        ...ClaudeModels.allModels,
-        ...OllamaModels.allModels,
+        gpt4o,
+        gpt4Turbo,
+        gpt35Turbo,
+        claudeOpus,
+        claudeSonnet,
+        claudeHaiku,
+        llama3,
+        codellama,
+        mistral,
       ];
 
   /// 按提供商获取模型
   static List<AIModel> byProvider(AIProvider provider) =>
       allModels.where((m) => m.provider == provider).toList();
 
-  /// 获取阿里云百炼模型（推荐）
-  static List<AIModel> get bailianModels => BaiLianModels.allModels;
-
   /// 获取 OpenAI 模型
-  static List<AIModel> get openaiModels => OpenAIModels.allModels;
+  static List<AIModel> get openaiModels => byProvider(AIProvider.openai);
 
   /// 获取 Claude 模型
-  static List<AIModel> get claudeModels => ClaudeModels.allModels;
+  static List<AIModel> get claudeModels => byProvider(AIProvider.claude);
 
   /// 获取 Ollama 模型
-  static List<AIModel> get ollamaModels => OllamaModels.allModels;
-
-  /// 获取代码相关模型
-  static List<AIModel> get codeModels => BaiLianModels.codeModels;
-
-  /// 默认模型
-  static AIModel get defaultModel => BaiLianModels.defaultModel;
+  static List<AIModel> get ollamaModels => byProvider(AIProvider.ollama);
 }
-
-/// =============================================================================
-// API 密钥配置
-// =============================================================================
 
 /// API 密钥配置
 class APIKeyConfig {
@@ -328,8 +198,7 @@ class APIKeyConfig {
     this.expiresAt,
   });
 
-  bool get isExpired =>
-      expiresAt != null && DateTime.now().isAfter(expiresAt!);
+  bool get isExpired => expiresAt != null && DateTime.now().isAfter(expiresAt!);
 
   Map<String, dynamic> toJson() => {
         'provider': provider.name,
@@ -341,7 +210,7 @@ class APIKeyConfig {
   factory APIKeyConfig.fromJson(Map<String, dynamic> json) => APIKeyConfig(
         provider: AIProvider.values.firstWhere(
           (e) => e.name == json['provider'],
-          orElse: () => AIProvider.bailian,
+          orElse: () => AIProvider.openai,
         ),
         apiKey: json['apiKey'] as String,
         baseUrl: json['baseUrl'] as String?,
@@ -351,196 +220,181 @@ class APIKeyConfig {
       );
 }
 
-/// =============================================================================
-// AI 设置
-// =============================================================================
-
 /// AI 设置
 class AISettings {
-  /// 选中的模型
-  final AIModel? selectedModel;
-
-  /// 温度参数（创造性）
+  final AIModel selectedModel;
+  final Map<AIProvider, APIKeyConfig> apiKeys;
+  final String ollamaBaseUrl;
   final double temperature;
-
-  /// 最大 Token 数
   final int maxTokens;
-
-  /// 系统提示词
-  final String? systemPrompt;
-
-  /// 是否启用代码高亮
-  final bool enableCodeHighlight;
-
-  /// 是否启用 Markdown 渲染
-  final bool enableMarkdown;
+  final bool autoExplain;
+  final bool autoSuggest;
+  final int contextLines;
 
   const AISettings({
-    this.selectedModel,
+    this.selectedModel = AIModels.gpt35Turbo,
+    this.apiKeys = const {},
+    this.ollamaBaseUrl = 'http://localhost:11434',
     this.temperature = 0.7,
-    this.maxTokens = 2000,
-    this.systemPrompt,
-    this.enableCodeHighlight = true,
-    this.enableMarkdown = true,
+    this.maxTokens = 2048,
+    this.autoExplain = false,
+    this.autoSuggest = true,
+    this.contextLines = 10,
   });
 
   AISettings copyWith({
     AIModel? selectedModel,
+    Map<AIProvider, APIKeyConfig>? apiKeys,
+    String? ollamaBaseUrl,
     double? temperature,
     int? maxTokens,
-    String? systemPrompt,
-    bool? enableCodeHighlight,
-    bool? enableMarkdown,
+    bool? autoExplain,
+    bool? autoSuggest,
+    int? contextLines,
   }) =>
       AISettings(
         selectedModel: selectedModel ?? this.selectedModel,
+        apiKeys: apiKeys ?? this.apiKeys,
+        ollamaBaseUrl: ollamaBaseUrl ?? this.ollamaBaseUrl,
         temperature: temperature ?? this.temperature,
         maxTokens: maxTokens ?? this.maxTokens,
-        systemPrompt: systemPrompt ?? this.systemPrompt,
-        enableCodeHighlight: enableCodeHighlight ?? this.enableCodeHighlight,
-        enableMarkdown: enableMarkdown ?? this.enableMarkdown,
-      );
-
-  /// 默认设置
-  factory AISettings.defaults() => const AISettings(
-        selectedModel: BaiLianModels.qwenTurbo,
-        temperature: 0.7,
-        maxTokens: 2000,
-        enableCodeHighlight: true,
-        enableMarkdown: true,
+        autoExplain: autoExplain ?? this.autoExplain,
+        autoSuggest: autoSuggest ?? this.autoSuggest,
+        contextLines: contextLines ?? this.contextLines,
       );
 
   Map<String, dynamic> toJson() => {
-        'selectedModel': selectedModel?.toJson(),
+        'selectedModel': selectedModel.id,
+        'apiKeys': apiKeys.map((k, v) => MapEntry(k.name, v.toJson())),
+        'ollamaBaseUrl': ollamaBaseUrl,
         'temperature': temperature,
         'maxTokens': maxTokens,
-        'systemPrompt': systemPrompt,
-        'enableCodeHighlight': enableCodeHighlight,
-        'enableMarkdown': enableMarkdown,
+        'autoExplain': autoExplain,
+        'autoSuggest': autoSuggest,
+        'contextLines': contextLines,
       };
 
-  factory AISettings.fromJson(Map<String, dynamic> json) => AISettings(
-        selectedModel: json['selectedModel'] != null
-            ? AIModel.fromJson(json['selectedModel'] as Map<String, dynamic>)
-            : null,
-        temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
-        maxTokens: json['maxTokens'] as int? ?? 2000,
-        systemPrompt: json['systemPrompt'] as String?,
-        enableCodeHighlight: json['enableCodeHighlight'] as bool? ?? true,
-        enableMarkdown: json['enableMarkdown'] as bool? ?? true,
+  factory AISettings.fromJson(Map<String, dynamic> json) {
+    final modelId = json['selectedModel'] as String?;
+    final model = AIModels.allModels.firstWhere(
+      (m) => m.id == modelId,
+      orElse: () => AIModels.gpt35Turbo,
+    );
+
+    final apiKeysRaw = json['apiKeys'] as Map<String, dynamic>? ?? {};
+    final apiKeys = <AIProvider, APIKeyConfig>{};
+    for (final entry in apiKeysRaw.entries) {
+      final provider = AIProvider.values.firstWhere(
+        (e) => e.name == entry.key,
+        orElse: () => AIProvider.openai,
       );
+      apiKeys[provider] =
+          APIKeyConfig.fromJson(entry.value as Map<String, dynamic>);
+    }
 
-  String toJsonString() => jsonEncode(toJson());
-
-  factory AISettings.fromJsonString(String jsonString) =>
-      AISettings.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+    return AISettings(
+      selectedModel: model,
+      apiKeys: apiKeys,
+      ollamaBaseUrl:
+          json['ollamaBaseUrl'] as String? ?? 'http://localhost:11434',
+      temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
+      maxTokens: json['maxTokens'] as int? ?? 2048,
+      autoExplain: json['autoExplain'] as bool? ?? false,
+      autoSuggest: json['autoSuggest'] as bool? ?? true,
+      contextLines: json['contextLines'] as int? ?? 10,
+    );
+  }
 }
-
-/// =============================================================================
-// 快捷指令
-// =============================================================================
 
 /// 快捷指令
 class QuickCommand {
   final String id;
-  final String title;
   final String icon;
+  final String title;
+  final String description;
   final String prompt;
 
   const QuickCommand({
     required this.id,
-    required this.title,
     required this.icon,
+    required this.title,
+    required this.description,
     required this.prompt,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'icon': icon,
+        'title': title,
+        'description': description,
+        'prompt': prompt,
+      };
+
+  factory QuickCommand.fromJson(Map<String, dynamic> json) => QuickCommand(
+        id: json['id'] as String,
+        icon: json['icon'] as String,
+        title: json['title'] as String,
+        description: json['description'] as String,
+        prompt: json['prompt'] as String,
+      );
 }
 
 /// 预定义快捷指令
 class QuickCommands {
-  /// 代码解释
-  static const explain = QuickCommand(
+  static const explainCode = QuickCommand(
     id: 'explain',
+    icon: '🔍',
     title: '解释代码',
-    icon: '📖',
-    prompt: '请详细解释以下代码的功能和工作原理：\n\n{code}',
+    description: '分析当前选中代码的功能',
+    prompt: '请解释以下代码的功能和工作原理：\n\n```{language}\n{code}\n```\n\n请用简洁易懂的语言解释。',
   );
 
-  /// 代码优化
-  static const optimize = QuickCommand(
-    id: 'optimize',
-    title: '优化代码',
-    icon: '⚡',
-    prompt: '请优化以下代码，提高性能和可读性：\n\n{code}',
-  );
-
-  /// 代码调试
-  static const debug = QuickCommand(
-    id: 'debug',
-    title: '调试代码',
-    icon: '🐛',
-    prompt: '请分析以下代码可能存在的问题并提供修复建议：\n\n{code}',
-  );
-
-  /// 生成测试
-  static const generateTest = QuickCommand(
-    id: 'generate_test',
-    title: '生成测试',
-    icon: '🧪',
-    prompt: '请为以下代码生成单元测试用例：\n\n{code}',
-  );
-
-  /// 代码翻译
-  static const translate = QuickCommand(
-    id: 'translate',
-    title: '翻译代码',
-    icon: '🔄',
-    prompt: '请将以下代码翻译成目标语言（请告诉我目标语言）：\n\n{code}',
-  );
-
-  /// 代码重构
   static const refactor = QuickCommand(
     id: 'refactor',
-    title: '重构代码',
-    icon: '🏗️',
-    prompt: '请重构以下代码，改善其结构和设计模式：\n\n{code}',
+    icon: '🔧',
+    title: '重构建议',
+    description: '提供代码重构方案',
+    prompt: '请分析以下代码并提供重构建议：\n\n```{language}\n{code}\n```\n\n请从代码可读性、性能、安全性等角度给出建议。',
   );
 
-  /// 代码补全
-  static const complete = QuickCommand(
-    id: 'complete',
-    title: '补全代码',
-    icon: '✨',
-    prompt: '请补全以下不完整的代码：\n\n{code}',
-  );
-
-  /// 添加注释
-  static const comment = QuickCommand(
+  static const addComments = QuickCommand(
     id: 'comment',
-    title: '添加注释',
     icon: '📝',
-    prompt: '请为以下代码添加详细的中文注释：\n\n{code}',
+    title: '添加注释',
+    description: '为代码添加注释',
+    prompt: '请为以下代码添加详细的中文注释：\n\n```{language}\n{code}\n```\n\n注释应该清晰解释每个部分的作用。',
   );
 
-  /// 所有快捷指令
-  static List<QuickCommand> get all => [
-        explain,
-        optimize,
-        debug,
-        generateTest,
-        translate,
-        refactor,
-        complete,
-        comment,
-      ];
+  static const findBug = QuickCommand(
+    id: 'bug',
+    icon: '🐛',
+    title: '查找Bug',
+    description: '检查代码潜在问题',
+    prompt: '请检查以下代码中的潜在问题和错误：\n\n```{language}\n{code}\n```\n\n请列出发现的问题及修复建议。',
+  );
 
-  /// 代码相关指令
-  static List<QuickCommand> get codeCommands => [
-        explain,
-        optimize,
-        debug,
-        generateTest,
+  static const generateTest = QuickCommand(
+    id: 'test',
+    icon: '✅',
+    title: '生成测试',
+    description: '自动生成单元测试',
+    prompt: '请为以下代码生成单元测试（使用 {testFramework}）：\n\n```{language}\n{code}\n```\n\n请生成完整可运行的测试代码。',
+  );
+
+  static const translateCode = QuickCommand(
+    id: 'translate',
+    icon: '🌐',
+    title: '翻译代码',
+    description: '转换代码到其他语言',
+    prompt: '请将以下代码转换为 {targetLanguage}：\n\n```{language}\n{code}\n```\n\n请保持原有的逻辑和功能。',
+  );
+
+  static List<QuickCommand> get all => [
+        explainCode,
         refactor,
-        complete,
-        comment,
+        addComments,
+        findBug,
+        generateTest,
+        translateCode,
       ];
 }

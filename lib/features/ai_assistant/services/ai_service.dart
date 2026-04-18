@@ -1,7 +1,5 @@
 // lib/features/ai_assistant/services/ai_service.dart
-// =============================================================================
-// AI 服务层 - 支持阿里云百炼 API
-// =============================================================================
+// AI 服务层 - 支持多模型提供商
 
 import 'dart:async';
 import 'dart:convert';
@@ -9,47 +7,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/ai_models.dart';
 
-/// =============================================================================
-// 阿里云百炼 API 配置
-// =============================================================================
-
-/// AI 服务配置
-class AIConfig {
-  /// 百炼 API Key（通过后端服务管理）
-  static const String apiKey = '';
-  
-  /// 后端服务地址（统一 API 入口）
-  static const String backendUrl = 'https://your-backend-server.com';
-  
-  /// API 接口路径
-  static const String chatEndpoint = '/api/ai/chat';
-  static const String codeAnalysisEndpoint = '/api/ai/code-analysis';
-  static const String captchaEndpoint = '/api/captcha';
-  static const String captchaVerifyEndpoint = '/api/captcha/verify';
-  
-  /// 请求超时时间（毫秒）
-  static const int timeout = 30000;
-  
-  /// 默认模型
-  static const String defaultModel = 'qwen-turbo';
-  
-  /// 可用模型列表
-  static const List<String> availableModels = [
-    'qwen-turbo',    // 快速响应
-    'qwen-plus',     // 均衡性能
-    'qwen-max',      // 最强能力
-  ];
-}
-
-/// AI 响应数据类
+/// AI 响应
 class AIResponse {
   final String content;
   final String? code;
   final String? language;
   final bool isError;
   final Duration duration;
-  final String? model;
-  final int? usage;
 
   AIResponse({
     required this.content,
@@ -57,8 +21,6 @@ class AIResponse {
     this.language,
     this.isError = false,
     this.duration = Duration.zero,
-    this.model,
-    this.usage,
   });
 
   factory AIResponse.error(String message, Duration duration) => AIResponse(
@@ -66,9 +28,6 @@ class AIResponse {
         isError: true,
         duration: duration,
       );
-
-  @override
-  String toString() => 'AIResponse(content: $content, isError: $isError)';
 }
 
 /// AI 对话消息
@@ -106,12 +65,6 @@ class ChatMessage {
         code: json['code'] as String?,
         language: json['language'] as String?,
       );
-
-  /// 转换为百炼 API 格式
-  Map<String, dynamic> toBaiLianFormat() => {
-        'role': role,
-        'content': content,
-      };
 }
 
 /// AI 对话历史
@@ -180,13 +133,8 @@ class ChatConversation {
   }
 }
 
-/// =============================================================================
-// AI 服务接口
-// =============================================================================
-
 /// AI 服务接口
 abstract class AIService {
-  /// 发送消息
   Future<AIResponse> sendMessage({
     required String message,
     String? code,
@@ -194,31 +142,26 @@ abstract class AIService {
     List<ChatMessage>? history,
   });
 
-  /// 测试连接
   Future<bool> testConnection();
-
-  /// 释放资源
   void dispose();
 }
 
-/// =============================================================================
-// 阿里云百炼服务实现
-// =============================================================================
-
-/// 阿里云百炼 API 服务
-class BaiLianService implements AIService {
-  final String baseUrl;
-  final String model;
+/// OpenAI API 服务
+class OpenAIService implements AIService {
+  final String apiKey;
+  final String? baseUrl;
+  final AIModel model;
   final double temperature;
   final int maxTokens;
 
   HttpClient? _client;
 
-  BaiLianService({
-    this.baseUrl = AIConfig.backendUrl,
-    this.model = AIConfig.defaultModel,
+  OpenAIService({
+    required this.apiKey,
+    this.baseUrl,
+    required this.model,
     this.temperature = 0.7,
-    this.maxTokens = 2000,
+    this.maxTokens = 2048,
   });
 
   @override
@@ -229,148 +172,110 @@ class BaiLianService implements AIService {
     List<ChatMessage>? history,
   }) async {
     final stopwatch = Stopwatch()..start();
-
     try {
-      // 构建消息列表
       final messages = _buildMessages(message, code, language, history);
 
-      // 调用后端 API
       final response = await _post(
-        endpoint: AIConfig.chatEndpoint,
+        endpoint: '/chat/completions',
         body: {
-          'model': model,
-          'input': {
-            'messages': messages,
-          },
-          'parameters': {
-            'temperature': temperature,
-            'max_tokens': maxTokens,
-          },
+          'model': model.id,
+          'messages': messages,
+          'temperature': temperature,
+          'max_tokens': maxTokens,
         },
       );
 
       stopwatch.stop();
 
-      // 解析响应
-      if (response['success'] == true) {
-        final output = response['output'] as Map<String, dynamic>?;
-        final content = output?['text'] as String? ?? response['content'] as String? ?? '';
-        
-        // 提取代码块
-        final codeBlock = _extractCodeBlock(content);
-        
-        return AIResponse(
-          content: content,
-          code: codeBlock,
-          language: codeBlock != null ? _detectLanguage(codeBlock) : null,
-          duration: stopwatch.elapsed,
-          model: response['model'] as String?,
-          usage: response['usage'] as int?,
-        );
-      } else {
-        return AIResponse.error(
-          response['error']?['message'] ?? '未知错误',
-          stopwatch.elapsed,
-        );
-      }
+      final content = response['choices'][0]['message']['content'] as String;
+      return AIResponse(content: content, duration: stopwatch.elapsed);
     } catch (e) {
       stopwatch.stop();
-      debugPrint('BaiLianService Error: $e');
       return AIResponse.error(e.toString(), stopwatch.elapsed);
     }
   }
 
-  List<Map<String, dynamic>> _buildMessages(
+  List<Map<String, String>> _buildMessages(
     String message,
     String? code,
     String? language,
     List<ChatMessage>? history,
   ) {
-    final messages = <Map<String, dynamic>>[];
+    final messages = <Map<String, String>>[];
 
-    // 添加历史消息
-    if (history != null) {
-      for (final msg in history.take(10)) {
-        messages.add(msg.toBaiLianFormat());
-      }
-    }
-
-    // 构建当前消息
-    String content = message;
-    if (code != null && code.isNotEmpty) {
-      content = '''$message
-
-请分析以下${language ?? '代码'}：
-```${language ?? ''}
-$code
-```''';
-    }
-
+    // 系统提示
     messages.add({
-      'role': 'user',
-      'content': content,
+      'role': 'system',
+      'content':
+          '你是一个专业的编程助手，帮助用户解释代码、调试问题、提供重构建议。'
+          '请用简洁专业的语言回复。代码块使用 ``` 包裹，并注明语言。',
     });
 
-    return messages;
-  }
-
-  Future<Map<String, dynamic>> _post({
-    required String endpoint,
-    required Map<String, dynamic> body,
-  }) async {
-    _client ??= HttpClient();
-
-    final uri = Uri.parse('$baseUrl$endpoint');
-    final request = await _client!.openUrl('POST', uri)
-      ..headers.contentType = ContentType.json
-      ..headers.set('Accept', 'application/json')
-      ..write(jsonEncode(body));
-
-    try {
-      final httpResponse = await request.close().timeout(
-        Duration(milliseconds: AIConfig.timeout),
-      );
-
-      final responseBody = await httpResponse.transform(utf8.decoder).join();
-
-      if (httpResponse.statusCode == 200) {
-        return jsonDecode(responseBody) as Map<String, dynamic>;
-      } else {
-        return {
-          'success': false,
-          'error': {
-            'code': httpResponse.statusCode.toString(),
-            'message': responseBody,
-          },
-        };
+    // 历史消息
+    if (history != null) {
+      for (final msg in history.take(10)) {
+        messages.add({'role': msg.role, 'content': msg.content});
       }
-    } on TimeoutException {
-      return {
-        'success': false,
-        'error': {
-          'code': 'TIMEOUT',
-          'message': '请求超时，请稍后重试',
-        },
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'error': {
-          'code': 'NETWORK_ERROR',
-          'message': '网络错误: $e',
-        },
-      };
     }
+
+    // 当前消息
+    if (code != null && language != null) {
+      messages.add({
+        'role': 'user',
+        'content': '$message\n\n```$language\n$code\n```',
+      });
+    } else {
+      messages.add({'role': 'user', 'content': message});
+    }
+
+    return messages;
   }
 
   @override
   Future<bool> testConnection() async {
     try {
-      final response = await sendMessage(message: '测试');
-      return !response.isError;
-    } catch (e) {
+      await _post(
+        endpoint: '/models',
+        body: {},
+        useAuth: false,
+      );
+      return true;
+    } catch (_) {
       return false;
     }
+  }
+
+  Future<Map<String, dynamic>> _post({
+    required String endpoint,
+    required Map<String, dynamic> body,
+    bool useAuth = true,
+  }) async {
+    _client ??= HttpClient();
+
+    final url = (baseUrl ?? 'https://api.openai.com') + endpoint;
+    final request = await _client!.postUrl(Uri.parse(url));
+
+    request.headers.set('Content-Type', 'application/json');
+    if (useAuth) {
+      request.headers.set('Authorization', 'Bearer $apiKey');
+    }
+
+    request.write(jsonEncode(body));
+
+    final response = await request.close().timeout(
+          const Duration(seconds: 60),
+          onTimeout: () => throw TimeoutException('请求超时'),
+        );
+
+    final bodyStr = await response.transform(utf8.decoder).join();
+    final data = jsonDecode(bodyStr) as Map<String, dynamic>;
+
+    if (response.statusCode != 200) {
+      final error = data['error']?['message'] ?? 'Unknown error';
+      throw Exception('API Error: $error');
+    }
+
+    return data;
   }
 
   @override
@@ -378,81 +283,248 @@ $code
     _client?.close();
     _client = null;
   }
+}
 
-  /// 提取代码块
-  String? _extractCodeBlock(String content) {
-    final regex = RegExp(r'```[\w]*\n?([\s\S]*?)```');
-    final match = regex.firstMatch(content);
-    return match?.group(1)?.trim();
+/// Claude API 服务
+class ClaudeService implements AIService {
+  final String apiKey;
+  final AIModel model;
+  final double temperature;
+  final int maxTokens;
+
+  HttpClient? _client;
+
+  ClaudeService({
+    required this.apiKey,
+    required this.model,
+    this.temperature = 0.7,
+    this.maxTokens = 2048,
+  });
+
+  @override
+  Future<AIResponse> sendMessage({
+    required String message,
+    String? code,
+    String? language,
+    List<ChatMessage>? history,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final content = _buildContent(message, code, language);
+
+      final response = await _post(
+        body: {
+          'model': model.id,
+          'max_tokens': maxTokens,
+          'temperature': temperature,
+          'messages': [
+            if (history != null) ...history.take(10).map((m) => {
+                  'role': m.role == 'assistant' ? 'assistant' : 'user',
+                  'content': m.content,
+                }),
+            {'role': 'user', 'content': content},
+          ],
+        },
+      );
+
+      stopwatch.stop();
+
+      final text = response['content'][0]['text'] as String;
+      return AIResponse(content: text, duration: stopwatch.elapsed);
+    } catch (e) {
+      stopwatch.stop();
+      return AIResponse.error(e.toString(), stopwatch.elapsed);
+    }
   }
 
-  /// 检测代码语言
-  String _detectLanguage(String code) {
-    if (code.contains('fun ') || code.contains('val ') || code.contains('var ')) {
-      return 'kotlin';
+  String _buildContent(String message, String? code, String? language) {
+    if (code != null && language != null) {
+      return '$message\n\n```$language\n$code\n```';
     }
-    if (code.contains('class ') && code.contains(';')) {
-      return 'java';
+    return message;
+  }
+
+  @override
+  Future<bool> testConnection() async {
+    try {
+      await _post(body: {
+        'model': model.id,
+        'max_tokens': 1,
+        'messages': [
+          {'role': 'user', 'content': 'Hi'}
+        ],
+      });
+      return true;
+    } catch (_) {
+      return false;
     }
-    if (code.contains('def ') || code.contains('import ')) {
-      return 'python';
+  }
+
+  Future<Map<String, dynamic>> _post({
+    required Map<String, dynamic> body,
+  }) async {
+    _client ??= HttpClient();
+
+    final request = await _client!.postUrl(
+      Uri.parse('https://api.anthropic.com/v1/messages'),
+    );
+
+    request.headers.set('Content-Type', 'application/json');
+    request.headers.set('x-api-key', apiKey);
+    request.headers.set('anthropic-version', '2023-06-01');
+
+    request.write(jsonEncode(body));
+
+    final response = await request.close().timeout(
+          const Duration(seconds: 60),
+          onTimeout: () => throw TimeoutException('请求超时'),
+        );
+
+    final bodyStr = await response.transform(utf8.decoder).join();
+    final data = jsonDecode(bodyStr) as Map<String, dynamic>;
+
+    if (response.statusCode != 200) {
+      final error = data['error']?['type'] ?? 'Unknown error';
+      throw Exception('API Error: $error');
     }
-    if (code.contains('function ') || code.contains('const ') || code.contains('=>')) {
-      return 'javascript';
-    }
-    if (code.contains('fn ') && code.contains('->')) {
-      return 'rust';
-    }
-    return 'code';
+
+    return data;
+  }
+
+  @override
+  void dispose() {
+    _client?.close();
+    _client = null;
   }
 }
 
-/// =============================================================================
-// AI 服务工厂
-// =============================================================================
+/// Ollama 本地服务
+class OllamaService implements AIService {
+  final String baseUrl;
+  final AIModel model;
+  final double temperature;
+  final int maxTokens;
 
-/// AI 服务工厂类
-class AIServiceFactory {
-  static AIService create(AIModel model, AISettings settings) {
-    // 使用百炼服务，统一通过后端调用
-    return BaiLianService(
-      baseUrl: AIConfig.backendUrl,
-      model: settings.selectedModel?.id ?? AIConfig.defaultModel,
-      temperature: settings.temperature,
-      maxTokens: settings.maxTokens,
-    );
+  HttpClient? _client;
+
+  OllamaService({
+    required this.baseUrl,
+    required this.model,
+    this.temperature = 0.7,
+    this.maxTokens = 2048,
+  });
+
+  @override
+  Future<AIResponse> sendMessage({
+    required String message,
+    String? code,
+    String? language,
+    List<ChatMessage>? history,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final fullMessage = code != null && language != null
+          ? '$message\n\n```$language\n$code\n```'
+          : message;
+
+      final response = await _post(body: {
+        'model': model.id,
+        'prompt': fullMessage,
+        'stream': false,
+        'options': {
+          'temperature': temperature,
+          'num_predict': maxTokens,
+        },
+      });
+
+      stopwatch.stop();
+
+      final text = response['response'] as String;
+      return AIResponse(content: text, duration: stopwatch.elapsed);
+    } catch (e) {
+      stopwatch.stop();
+      return AIResponse.error(e.toString(), stopwatch.elapsed);
+    }
   }
 
-  static List<AIModel> getAvailableModels() {
-    // 返回阿里云百炼支持的模型
-    return [
-      const AIModel(
-        id: 'qwen-turbo',
-        name: '通义千问-超快速',
-        provider: AIProvider.bailian,
-        description: '超快速响应，适合日常对话和简单任务',
-        maxTokens: 8192,
-        inputCostPer1K: 0.001,
-        outputCostPer1K: 0.002,
-      ),
-      const AIModel(
-        id: 'qwen-plus',
-        name: '通义千问-均衡',
-        provider: AIProvider.bailian,
-        description: '均衡性能与成本，适合大多数场景',
-        maxTokens: 32768,
-        inputCostPer1K: 0.003,
-        outputCostPer1K: 0.009,
-      ),
-      const AIModel(
-        id: 'qwen-max',
-        name: '通义千问-最强',
-        provider: AIProvider.bailian,
-        description: '最强能力，适合复杂任务和深度分析',
-        maxTokens: 32768,
-        inputCostPer1K: 0.02,
-        outputCostPer1K: 0.06,
-      ),
-    ];
+  @override
+  Future<bool> testConnection() async {
+    try {
+      _client ??= HttpClient();
+      final request = await _client!.getUrl(
+        Uri.parse('$baseUrl/api/tags'),
+      );
+      final response = await request.close().timeout(
+            const Duration(seconds: 5),
+          );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> _post({
+    required Map<String, dynamic> body,
+  }) async {
+    _client ??= HttpClient();
+
+    final request = await _client!.postUrl(
+      Uri.parse('$baseUrl/api/generate'),
+    );
+
+    request.headers.set('Content-Type', 'application/json');
+    request.write(jsonEncode(body));
+
+    final response = await request.close().timeout(
+          const Duration(seconds: 120),
+          onTimeout: () => throw TimeoutException('请求超时'),
+        );
+
+    final bodyStr = await response.transform(utf8.decoder).join();
+    final data = jsonDecode(bodyStr) as Map<String, dynamic>;
+
+    return data;
+  }
+
+  @override
+  void dispose() {
+    _client?.close();
+    _client = null;
+  }
+}
+
+/// AI 服务工厂
+class AIServiceFactory {
+  static AIService? create(AIModel model, AISettings settings) {
+    final apiConfig = settings.apiKeys[model.provider];
+
+    switch (model.provider) {
+      case AIProvider.openai:
+        if (apiConfig == null || apiConfig.apiKey.isEmpty) return null;
+        return OpenAIService(
+          apiKey: apiConfig.apiKey,
+          baseUrl: apiConfig.baseUrl,
+          model: model,
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+        );
+
+      case AIProvider.claude:
+        if (apiConfig == null || apiConfig.apiKey.isEmpty) return null;
+        return ClaudeService(
+          apiKey: apiConfig.apiKey,
+          model: model,
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+        );
+
+      case AIProvider.ollama:
+        return OllamaService(
+          baseUrl: settings.ollamaBaseUrl,
+          model: model,
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+        );
+    }
   }
 }

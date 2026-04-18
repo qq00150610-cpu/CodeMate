@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    CodeMate 颜色资源文件
+    =============================================================================
+    包含应用的所有颜色定义，支持浅色/深色主题
+-->
+<resources>
+    <!-- =================================================================== -->
+    <!-- 主色调 -->
+    <!-- =================================================================== -->
+    
+    <!-- 主色 -->
+    <color name="primary">#6750A4</color>
+    <color name="primary_variant">#4F378B</color>
+    <color name="on_primary">#FFFFFF</color>
+    
+    <!-- 次要色 -->
+    <color name="secondary">#625B71</color>
+    <color name="secondary_variant">#7D5260</color>
+    <color name="on_secondary">#FFFFFF</color>
+    
+    <!-- 第三色 -->
+    <color name="tertiary">#7D5260</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    
+    <!-- =================================================================== -->
+    <!-- 背景和表面色 -->
+    <!-- =================================================================== -->
+    
+    <color name="background">#FFFBFE</color>
+    <color name="on_background">#1C1B1F</color>
+    
+    <color name="surface">#FFFBFE</color>
+    <color name="on_surface">#1C1B1F</color>
+    
+    <color name="surface_variant">#E7E0EC</color>
+    <color name="on_surface_variant">#49454F</color>
+    
+    <color name="surface_container">#F3EDF7</color>
+    <color name="surface_container_high">#ECE6F0</color>
+    <color name="surface_container_highest">#E6E0E9</color>
+    
+    <!-- =================================================================== -->
+    <!-- 错误色 -->
+    <!-- =================================================================== -->
+    
+    <color name="error">#B3261E</color>
+    <color name="on_error">#FFFFFF</color>
+    <color name="error_container">#F9DEDC</color>
+    <color name="on_error_container">#410E0B</color>
+    
+    <!-- =================================================================== -->
+    <!-- 轮廓和分割线 -->
+    <!-- =================================================================== -->
+    
+    <color name="outline">#79747E</color>
+    <color name="outline_variant">#CAC4D0</color>
+    
+    <!-- =================================================================== -->
+    <!-- 状态栏颜色 -->
+    <!-- =================================================================== -->
+    
+    <color name="status_bar">#4F378B</color>
+    <color name="navigation_bar">#FFFBFE</color>
+    
+    <!-- =================================================================== -->
+    <!-- AI 助手相关颜色 -->
+    <!-- =================================================================== -->
+    
+    <color name="ai_primary">#6750A4</color>
+    <color name="ai_secondary">#E8DEF8</color>
+    <color name="ai_user_bubble">#6750A4</color>
+    <color name="ai_ai_bubble">#E7E0EC</color>
+    <color name="ai_typing">#CAC4D0</color>
+    <color name="ai_error">#F44336</color>
+    <color name="ai_success">#4CAF50</color>
+    
+    <!-- =================================================================== -->
+    <!-- 代码编辑器颜色 -->
+    <!-- =================================================================== -->
+    
+    <color name="editor_background">#1E1E1E</color>
+    <color name="editor_line_number">#858585</color>
+    <color name="editor_selection">#264F78</color>
+    <color name="editor_current_line">#282828</color>
+    <color name="editor_cursor">#AEAFAD</color>
+    
+    <!-- 代码高亮 -->
+    <color name="code_keyword">#569CD6</color>
+    <color name="code_string">#CE9178</color>
+    <color name="code_number">#B5CEA8</color>
+    <color name="code_comment">#6A9955</color>
+    <color name="code_function">#DCDCAA</color>
+    <color name="code_variable">#9CDCFE</color>
+    <color name="code_type">#4EC9B0</color>
+    
+    <!-- =================================================================== -->
+    <!-- 快捷键按钮颜色 -->
+    <!-- =================================================================== -->
+    
+    <color name="quick_key_bg">#E7E0EC</color>
+    <color name="quick_key_text">#49454F</color>
+    <color name="quick_key_pressed">#CAC4D0</color>
+    
+    <!-- =================================================================== -->
+    <!-- 下载进度颜色 -->
+    <!-- =================================================================== -->
+    
+    <color name="progress_background">#E7E0EC</color>
+    <color name="progress_primary">#6750A4</color>
+    
+    <!-- =================================================================== -->
+    <!-- 深色主题 -->
+    <!-- =================================================================== -->
+    
+    <color name="primary_dark">#D0BCFF</color>
+    <color name="primary_variant_dark">#4F378B</color>
+    <color name="on_primary_dark">#381E72</color>
+    
+    <color name="secondary_dark">#CCC2DC</color>
+    <color name="on_secondary_dark">#332D41</color>
+    
+    <color name="background_dark">#1C1B1F</color>
+    <color name="on_background_dark">#E6E1E5</color>
+    
+    <color name="surface_dark">#1C1B1F</color>
+    <color name="on_surface_dark">#E6E1E5</color>
+    
+    <color name="surface_variant_dark">#49454F</color>
+    <color name="on_surface_variant_dark">#CAC4D0</color>
+    
+    <color name="outline_dark">#938F99</color>
+    <color name="outline_variant_dark">#49454F</color>
+    
+    <!-- AI 深色主题 -->
+    <color name="ai_user_bubble_dark">#D0BCFF</color>
+    <color name="ai_ai_bubble_dark">#49454F</color>
+</resources>

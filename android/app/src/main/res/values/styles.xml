@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    CodeMate 样式资源文件
+    =============================================================================
+    包含应用主题、颜色、按钮样式等 UI 配置
+-->
+<resources>
+    <!-- =================================================================== -->
+    <!-- 应用主题 -->
+    <!-- =================================================================== -->
+    
+    <!-- 应用主主题 -->
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- 主色调 -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_variant</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        
+        <!-- 次要色 -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorSecondaryVariant">@color/secondary_variant</item>
+        <item name="colorOnSecondary">@color/on_secondary</item>
+        
+        <!-- 背景色 -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/on_background</item>
+        
+        <!-- 表面色 -->
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        
+        <!-- 错误色 -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/on_error</item>
+        
+        <!-- 状态栏 -->
+        <item name="android:statusBarColor">@color/primary_variant</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        
+        <!-- 窗口 -->
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    
+    <!-- 启动屏主题 -->
+    <style name="AppTheme.Splash" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 按钮样式 -->
+    <!-- =================================================================== -->
+    
+    <!-- 主要按钮 -->
+    <style name="Widget.CodeMate.Button.Primary" parent="Widget.Material3.Button">
+        <item name="android:textColor">@color/on_primary</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:paddingLeft">24dp</item>
+        <item name="android:paddingRight">24dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+    
+    <!-- 次要按钮 -->
+    <style name="Widget.CodeMate.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">@color/primary</item>
+        <item name="strokeColor">@color/primary</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+    
+    <!-- 文字按钮 -->
+    <style name="Widget.CodeMate.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/primary</item>
+    </style>
+    
+    <!-- 图标按钮 -->
+    <style name="Widget.CodeMate.Button.Icon" parent="Widget.Material3.Button.IconButton">
+        <item name="iconTint">@color/on_surface</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 卡片样式 -->
+    <!-- =================================================================== -->
+    
+    <style name="Widget.CodeMate.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="contentPadding">16dp</item>
+    </style>
+    
+    <!-- AI 消息气泡 -->
+    <style name="Widget.CodeMate.ChatBubble.AI" parent="">
+        <item name="android:background">@drawable/bg_chat_bubble_ai</item>
+        <item name="android:padding">12dp</item>
+    </style>
+    
+    <!-- 用户消息气泡 -->
+    <style name="Widget.CodeMate.ChatBubble.User" parent="">
+        <item name="android:background">@drawable/bg_chat_bubble_user</item>
+        <item name="android:padding">12dp</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 输入框样式 -->
+    <!-- =================================================================== -->
+    
+    <style name="Widget.CodeMate.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="boxStrokeColor">@color/primary</item>
+        <item name="hintTextColor">@color/primary</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 对话框样式 -->
+    <!-- =================================================================== -->
+    
+    <style name="ThemeOverlay.CodeMate.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.CodeMate.Dialog</item>
+    </style>
+    
+    <style name="ShapeAppearance.CodeMate.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 文字样式 -->
+    <!-- =================================================================== -->
+    
+    <style name="TextAppearance.CodeMate.Headline" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">@color/on_background</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+    
+    <style name="TextAppearance.CodeMate.Title" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/on_background</item>
+    </style>
+    
+    <style name="TextAppearance.CodeMate.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/on_background</item>
+    </style>
+    
+    <style name="TextAppearance.CodeMate.Code" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textColor">@color/on_surface</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 工具栏样式 -->
+    <!-- =================================================================== -->
+    
+    <style name="Widget.CodeMate.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/surface</item>
+        <item name="titleTextColor">@color/on_surface</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 快捷键按钮样式 -->
+    <!-- =================================================================== -->
+    
+    <style name="Widget.CodeMate.QuickKey" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minWidth">48dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="backgroundTint">@color/surface_variant</item>
+    </style>
+    
+    <!-- =================================================================== -->
+    <!-- 尺寸常量 -->
+    <!-- =================================================================== -->
+    
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    
+    <dimen name="corner_radius_sm">4dp</dimen>
+    <dimen name="corner_radius_md">8dp</dimen>
+    <dimen name="corner_radius_lg">12dp</dimen>
+    <dimen name="corner_radius_xl">16dp</dimen>
+    
+    <dimen name="icon_size_sm">16dp</dimen>
+    <dimen name="icon_size_md">24dp</dimen>
+    <dimen name="icon_size_lg">32dp</dimen>
+    <dimen name="icon_size_xl">48dp</dimen>
+    
+    <dimen name="quick_key_size">48dp</dimen>
+    <dimen name="sidebar_width">320dp</dimen>
+    <dimen name="bottom_bar_height">56dp</dimen>
+</resources>

@@ -1,0 +1,51 @@
+// pubspec.yaml - CodeMate Flutter 依赖配置
+
+name: codemate
+description: "CodeMate - Android IDE with AI Assistant"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # WebView 支持
+  flutter_inappwebview: ^6.0.0
+  
+  # Markdown 渲染（支持 AI 响应展示）
+  flutter_markdown: ^0.6.18
+  
+  # 状态管理
+  provider: ^6.1.1
+  
+  # 本地存储
+  shared_preferences: ^2.2.2
+  
+  # 权限处理
+  permission_handler: ^11.1.0
+  
+  # 工具类
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/
+    - assets/bootstrap/
+    - assets/codemate_bridge.js
+  
+  fonts:
+    - family: RobotoMono
+      fonts:
+        - asset: fonts/RobotoMono-Regular.ttf
+        - asset: fonts/RobotoMono-Bold.ttf
+          weight: 700

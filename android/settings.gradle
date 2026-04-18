@@ -1,0 +1,35 @@
+// =============================================================================
+// CodeMate settings.gradle - Gradle 设置文件
+// =============================================================================
+// 定义 Gradle 项目结构、模块、插件解析等配置
+// =============================================================================
+
+// 插件解析配置
+pluginManagement {
+    def flutterSdkPath = {
+        def properties = new Properties()
+        file("local.properties").withInputStream { properties.load(it) }
+        def flutterSdkPath = properties.getProperty("flutter.sdk")
+        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+        return flutterSdkPath
+    }()
+
+    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id "dev.flutter.flutter-gradle-plugin" version "1.17.1" apply false
+}
+
+// 包含 Android 模块
+include ':android'
+
+// 项目名称配置
+gradle.rootProject.name = "CodeMate"
+gradle.rootProject.projectDir = file(".")

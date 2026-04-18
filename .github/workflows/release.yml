@@ -1,12 +1,6 @@
 # =============================================================================
 # CodeMate Release 自动发布工作流
 # =============================================================================
-# 功能：
-#   - 构建 Release APK
-#   - 创建 GitHub Release
-#   - 上传 APK 到 Release
-#   - 发送通知（可选）
-# =============================================================================
 
 name: Release
 
@@ -27,24 +21,18 @@ on:
         required: false
         default: ''
         type: string
+  push:
+    tags:
+      - 'v*'
 
-# 环境变量
 env:
   JAVA_VERSION: '17'
-  ANDROID_SDK_VERSION: '33'
   FLUTTER_VERSION: '3.16.0'
 
 jobs:
-  # ============================================================================
-  # 构建 Release APK
-  # ============================================================================
   build-release:
     name: Build Release APK
     runs-on: ubuntu-latest
-    
-    outputs:
-      apk-path: ${{ steps.build.outputs.apk-path }}
-      apk-hash: ${{ steps.build.outputs.apk-hash }}
     
     steps:
       - name: Checkout code
@@ -56,11 +44,17 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
+        uses: android-actions/setup-android@v3
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.pub-cache
@@ -79,38 +73,32 @@ jobs:
       - name: Create keystore.properties
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           cat > android/keystore.properties << EOF
-          key.store=codemate.keystore
-          key.alias=codemate
-          key.store.password=$KEYSTORE_PASSWORD
-          key.alias.password=$KEY_ALIAS_PASSWORD
+          storeFile=codemate.keystore
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEYSTORE_PASSWORD
           EOF
 
       - name: Build Release APK
-        id: build
         run: |
           flutter build apk --release --split-per-abi=false
-          
-          # 输出 APK 路径和哈希
-          echo "apk-path=build/app/outputs/flutter-apk/app-release.apk" >> $GITHUB_OUTPUT
-          echo "apk-hash=$(sha256sum build/app/outputs/flutter-apk/app-release.apk | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/CodeMate-${{ github.event.inputs.version || '1.0.0' }}.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: CodeMate-APK
+          path: build/app/outputs/flutter-apk/CodeMate-*.apk
           retention-days: 30
 
-  # ============================================================================
-  # 创建 Release
-  # ============================================================================
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: build-release
+    if: github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Checkout code
@@ -119,65 +107,27 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: release-apk
+          name: CodeMate-APK
           path: ./release/
 
-      - name: Generate changelog
-        id: changelog
-        run: |
-          if [ -n "${{ github.event.inputs.changelog }}" ]; then
-            CHANGELOG="${{ github.event.inputs.changelog }}"
-          else
-            # 从 CHANGELOG.md 提取版本更新日志
-            CHANGELOG=$(cat CHANGELOG.md | sed -n '/## \[${{ github.event.inputs.version }}\]/,/## \[/p' | sed '$d')
-          fi
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
           release_name: CodeMate v${{ github.event.inputs.version }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: |
+            ## CodeMate v${{ github.event.inputs.version }}
+            
+            ${{ github.event.inputs.changelog }}
+            
+            ### 功能特性
+            - 🤖 AI 助手（阿里云百炼通义千问）
+            - 🔐 后端服务（API Key 安全管理）
+            - ⚡ 性能优化（冷启动加速、内存管理）
+            - 📦 项目模板系统
+            - 🔄 自动更新机制
           draft: false
-          prerelease: ${{ github.event.inputs.prerelease }}
-          files: |
-            release/app-release.apk
-          generate_release_notes: true
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/app-release.apk
-          asset_name: CodeMate-${{ github.event.inputs.version }}-release.apk
-          asset_content_type: application/vnd.android.package-archive
-
-  # ============================================================================
-  # 发布通知（可选）
-  # ============================================================================
-  notify:
-    name: Send Notification
-    runs-on: ubuntu-latest
-    needs: create-release
-    if: ${{ secrets.DISCORD_WEBHOOK != '' }}
-    
-    steps:
-      - name: Send Discord notification
-        uses: appleboy/discord-action@master
-        with:
-          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
-          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
-          message: |
-            🎉 **CodeMate v${{ github.event.inputs.version }} 发布！**
-            
-            📦 下载地址: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
-            
-            🏷️ 版本: ${{ github.event.inputs.version }}
-            📱 类型: ${{ github.event.inputs.prerelease == 'true' && '预发布' || '正式版' }}

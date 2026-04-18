@@ -53,22 +53,23 @@ android {
     }
 
     signingConfigs {
-        release {
-            keyAlias keystoreProperties.getProperty("keyAlias")
-            keyPassword keystoreProperties.getProperty("keyPassword")
-            storeFile keystoreProperties.getProperty("storeFile") ? file(keystoreProperties.getProperty("storeFile")) : null
-            storePassword keystoreProperties.getProperty("storePassword")
+        if (keystoreProperties.getProperty("storeFile") != null) {
+            release {
+                keyAlias keystoreProperties.getProperty("keyAlias")
+                keyPassword keystoreProperties.getProperty("keyPassword")
+                storeFile file(keystoreProperties.getProperty("storeFile"))
+                storePassword keystoreProperties.getProperty("storePassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (keystoreProperties.getProperty("storeFile") != null) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             shrinkResources false
-        }
-        debug {
-            signingConfig signingConfigs.debug
         }
     }
 }

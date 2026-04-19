@@ -11,7 +11,7 @@ on:
 
 env:
   JAVA_VERSION: '17'
-  FLUTTER_VERSION: '3.22.0'
+  FLUTTER_VERSION: '3.24.0'
 
 jobs:
   build:
@@ -40,33 +40,36 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Debug APK with verbose
-        run: flutter build apk --debug --verbose
-
+      - name: Build APK
+        id: build
+        run: |
+          flutter build apk --debug 2>&1 | tee build.log
+          echo "Build exit code: $?"
+          
       - name: Find APK files
-        run: find . -name "*.apk" 2>/dev/null
-
-      - name: List build outputs
-        run: ls -laR build/app/outputs/ 2>/dev/null || echo "No outputs found"
+        if: always()
+        run: |
+          echo "=== Finding APK files ==="
+          find . -name "*.apk" 2>/dev/null || echo "No APK found"
+          echo "=== Listing build outputs ==="
+          ls -laR build/app/outputs/ 2>/dev/null || echo "No outputs directory"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
           name: codemate-debug-apk
           path: |
             build/app/outputs/flutter-apk/*.apk
             build/app/outputs/apk/**/*.apk
+            **/*.apk
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Create Release
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION=$(date +%Y.%m.%d.%H%M)
-          APK_FILE=$(find build -name "*.apk" | head -1)
-          if [ -n "$APK_FILE" ]; then
-            gh release create "v$VERSION" "$APK_FILE" --title "CodeMate Debug v$VERSION" --notes "Automated debug build" || echo "Release creation skipped"
-          fi
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7

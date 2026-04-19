@@ -1,5 +1,5 @@
 # =============================================================================
-# CodeMate Simple Build Workflow
+# CodeMate Build Workflow with Signing
 # =============================================================================
 
 name: Build APK
@@ -11,11 +11,11 @@ on:
 
 env:
   JAVA_VERSION: '17'
-  FLUTTER_VERSION: '3.16.0'
+  FLUTTER_VERSION: '3.19.0'
 
 jobs:
   build:
-    name: Build APK
+    name: Build Signed APK
     runs-on: ubuntu-latest
     
     steps:
@@ -40,12 +40,48 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Debug APK
-        run: flutter build apk --debug --split-per-abi=false || flutter build apk --debug
+      - name: Create keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/codemate.keystore
+          else
+            echo "No keystore secret found, creating debug keystore..."
+            mkdir -p ~/.android
+            keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, S=Debug, C=US"
+          fi
+
+      - name: Create keystore.properties
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -n "$KEYSTORE_PASSWORD" ]; then
+            cat > android/keystore.properties << EOF
+          storeFile=codemate.keystore
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEYSTORE_PASSWORD
+          EOF
+          fi
+
+      - name: Build Release APK
+        run: |
+          flutter build apk --release --split-per-abi=false || flutter build apk --release || flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: codemate-debug-apk
+          name: codemate-apk
           path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
+
+      - name: Create Release
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(date +%Y.%m.%d.%H%M)
+          APK_FILE=$(ls build/app/outputs/flutter-apk/*.apk | head -1)
+          gh release create "v$VERSION" "$APK_FILE" --title "CodeMate v$VERSION" --notes "Automated build" || echo "Release creation skipped"
